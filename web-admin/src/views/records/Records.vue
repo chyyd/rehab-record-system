@@ -109,7 +109,13 @@
             </el-table-column>
             <el-table-column prop="durationMinutes" label="时长(分钟)" width="120" />
             <el-table-column prop="outcome" label="患者反应" show-overflow-tooltip />
-            <el-table-column prop="photoCount" label="照片数" width="80" />
+            <el-table-column label="签名" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.photoFileName || row.signatureData ? 'success' : 'info'" size="small">
+                  {{ row.photoFileName || row.signatureData ? '已签名' : '未签名' }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
                 <el-button type="primary" size="small" @click="handleEdit(row)">
@@ -138,7 +144,13 @@
             </el-table-column>
             <el-table-column prop="durationMinutes" label="时长(分钟)" width="120" />
             <el-table-column prop="outcome" label="患者反应" show-overflow-tooltip />
-            <el-table-column prop="photoCount" label="照片数" width="80" />
+            <el-table-column label="签名" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.photoFileName || row.signatureData ? 'success' : 'info'" size="small">
+                  {{ row.photoFileName || row.signatureData ? '已签名' : '未签名' }}
+                </el-tag>
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="200" fixed="right">
               <template #default="{ row }">
                 <el-button type="info" size="small" @click="handleView(row)">
@@ -299,25 +311,11 @@
           />
         </el-form-item>
 
-        <el-form-item label="治疗照片">
-          <el-upload
-            :action="uploadUrl"
-            :headers="uploadHeaders"
-            :data="uploadData"
-            list-type="picture-card"
-            :on-preview="handlePicturePreview"
-            :on-success="handleUploadSuccess"
-            :on-remove="handleRemove"
-            :before-upload="beforeUpload"
-            :limit="9"
-            :file-list="fileList"
-            accept="image/*"
-            name="photo"
-          >
-            <el-icon><Plus /></el-icon>
-          </el-upload>
-          <div style="font-size: 12px; color: #999; margin-top: 5px;">
-            最多上传9张照片，照片将压缩到720p并自动添加开始时间水印
+        <el-form-item label="患者签名">
+          <SignaturePad ref="signaturePadRef" @confirm="handleSignatureConfirm" />
+          <div v-if="formData.signatureData" style="margin-top: 10px;">
+            <el-button size="small" @click="viewSignature">查看签名</el-button>
+            <el-button size="small" type="danger" @click="clearSignature">清除签名</el-button>
           </div>
         </el-form-item>
       </el-form>
@@ -362,30 +360,26 @@
         </el-descriptions-item>
       </el-descriptions>
 
-      <!-- Photo Display -->
-      <div v-if="currentRecord.photoFileName">
-        <div style="font-weight: bold; margin-bottom: 10px;">治疗照片</div>
+      <!-- Signature Display -->
+      <div v-if="currentRecord.signatureData || currentRecord.photoFileName">
+        <div style="font-weight: bold; margin-bottom: 10px;">患者签名</div>
         <div style="width: 100%; display: flex; justify-content: center; background: #f5f7fa; border-radius: 8px; padding: 20px;">
           <el-image
-            :src="getPhotoUrl(currentRecord.photoFileName)"
-            :preview-src-list="[getPhotoUrl(currentRecord.photoFileName)]"
+            :src="currentRecord.signatureData || getPhotoUrl(currentRecord.photoFileName)"
+            :preview-src-list="[currentRecord.signatureData || getPhotoUrl(currentRecord.photoFileName)]"
             fit="contain"
-            style="max-width: 100%; max-height: 600px; width: auto; height: auto; object-fit: contain;"
+            style="max-width: 100%; max-height: 400px; width: auto; height: auto; object-fit: contain;"
             :hide-on-click-modal="true"
             :preview-teleported="true"
           >
             <template #error>
               <div class="image-error">
                 <el-icon><Picture /></el-icon>
-                <span>照片加载失败</span>
+                <span>签名加载失败</span>
               </div>
             </template>
           </el-image>
         </div>
-      </div>
-      <div v-else-if="currentRecord.photoCount > 0">
-        <div style="font-weight: bold; margin-bottom: 10px;">治疗照片</div>
-        <el-tag type="info">共有 {{ currentRecord.photoCount }} 张照片</el-tag>
       </div>
     </el-dialog>
   </div>
@@ -394,8 +388,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus, Picture } from '@element-plus/icons-vue'
+import SignaturePad from '@/components/SignaturePad.vue'
 import request from '@/utils/request'
 import dayjs from 'dayjs'
 
@@ -435,22 +430,7 @@ const submitting = ref(false)
 
 const viewDialogVisible = ref(false)
 const currentRecord = ref<any>(null)
-
-// 照片上传
-const fileList = ref<UploadFile[]>([])
-const uploadedPhotoUrls = ref<string[]>([])
-const uploadUrl = computed(() => `/api/photos/upload`)
-const uploadHeaders = computed(() => ({
-  'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
-}))
-// 计算上传时的时间戳（使用开始时间）
-const uploadData = computed(() => {
-  if (formData.treatmentDate && formData.startTime) {
-    const timestamp = `${formData.treatmentDate}T${formData.startTime}`
-    return { timestamp }
-  }
-  return {}
-})
+const signaturePadRef = ref<InstanceType<typeof SignaturePad> | null>(null)
 
 const formRef = ref<FormInstance>()
 const formData = reactive<any>({
@@ -465,7 +445,8 @@ const formData = reactive<any>({
   extraSeconds: 0,
   outcome: '无不良反应',
   notes: '',
-  photoFileName: ''
+  signatureData: '',
+  photoFileName: '' // 保留用于兼容旧数据
 })
 
 const rules: FormRules = {
@@ -641,10 +622,9 @@ function handleAdd() {
     extraSeconds: 0,
     outcome: '无不良反应',
     notes: '',
+    signatureData: '',
     photoFileName: ''
   })
-  fileList.value = []
-  uploadedPhotoUrls.value = []
   dialogVisible.value = true
   // 确保结束时间根据默认时长计算
   updateEndTime()
@@ -704,6 +684,23 @@ async function handleSubmit() {
         const startDateTime = `${treatmentDateTime}T${formData.startTime}`
         const endDateTime = `${treatmentDateTime}T${formData.endTime}`
 
+        // 如果有签名数据，转换为Blob并上传
+        let photoFileName = formData.photoFileName
+        if (formData.signatureData) {
+          const signatureBlob = dataURLtoBlob(formData.signatureData)
+          const formData_upload = new FormData()
+          formData_upload.append('photo', signatureBlob, 'signature.png')
+          formData_upload.append('isSignature', 'true')
+
+          const uploadResponse = await request.post('/photos/upload', formData_upload, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          })
+
+          photoFileName = uploadResponse.filename
+        }
+
         const data = {
           patientId: formData.patientId,
           projectId: formData.projectId,
@@ -715,7 +712,7 @@ async function handleSubmit() {
           extraSeconds: formData.extraSeconds || 0,
           outcome: formData.outcome,
           notes: formData.notes,
-          photoFileName: formData.photoFileName
+          photoFileName: photoFileName
         }
 
         if (formData.id) {
@@ -737,46 +734,43 @@ async function handleSubmit() {
   })
 }
 
+// 将Base64转换为Blob
+function dataURLtoBlob(dataURL: string): Blob {
+  const arr = dataURL.split(',')
+  const mime = arr[0].match(/:(.*?);/)![1]
+  const bstr = atob(arr[1])
+  let n = bstr.length
+  const u8arr = new Uint8Array(n)
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n)
+  }
+  return new Blob([u8arr], { type: mime })
+}
+
 function handleDialogClose() {
   formRef.value?.resetFields()
-  fileList.value = []
-  uploadedPhotoUrls.value = []
 }
 
-// 照片上传相关方法
-function beforeUpload(file: any) {
-  const isImage = file.type.startsWith('image/')
-  const isLt10M = file.size / 1024 / 1024 < 10
-
-  if (!isImage) {
-    ElMessage.error('只能上传图片文件!')
-    return false
-  }
-  if (!isLt10M) {
-    ElMessage.error('图片大小不能超过 10MB!')
-    return false
-  }
-  return true
+// 签名相关方法
+function handleSignatureConfirm(imageData: string) {
+  formData.signatureData = imageData
+  ElMessage.success('签名已确认')
 }
 
-function handleUploadSuccess(response: any, file: any) {
-  uploadedPhotoUrls.value.push(response.url)
-  // 使用第一张照片的文件名作为记录的photoFileName
-  if (uploadedPhotoUrls.value.length === 1) {
-    formData.photoFileName = response.filename
-  }
-  ElMessage.success('照片上传成功')
-}
-
-function handleRemove() {
-  const index = uploadedPhotoUrls.value.length - 1
-  if (index >= 0) {
-    uploadedPhotoUrls.value.splice(index, 1)
+function viewSignature() {
+  if (formData.signatureData) {
+    // 打开新窗口显示签名
+    const win = window.open('')
+    if (win) {
+      win.document.write(`<img src="${formData.signatureData}" style="max-width: 100%; height: auto;" />`)
+    }
   }
 }
 
-function handlePicturePreview(file: any) {
-  window.open(file.url, '_blank')
+function clearSignature() {
+  formData.signatureData = ''
+  formData.photoFileName = ''
+  ElMessage.success('签名已清除')
 }
 
 function formatDateTime(date: string): string {
