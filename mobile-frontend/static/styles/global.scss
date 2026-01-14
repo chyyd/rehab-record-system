@@ -1,0 +1,115 @@
+/* 全局样式 */
+
+/* 重置样式 */
+* {
+  box-sizing: border-box;
+}
+
+/* 通用类 */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mt-10 {
+  margin-top: 10rpx;
+}
+
+.mt-20 {
+  margin-top: 20rpx;
+}
+
+.mb-10 {
+  margin-bottom: 10rpx;
+}
+
+.mb-20 {
+  margin-bottom: 20rpx;
+}
+
+/* 图标字体占位 - 实际项目中应使用iconfont */
+.iconfont {
+  font-family: 'iconfont';
+}
+
+/* 通用按钮样式 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 40rpx;
+  border-radius: 10rpx;
+  font-size: 28rpx;
+  border: none;
+
+  &.primary {
+    background-color: #667eea;
+    color: #fff;
+  }
+
+  &.secondary {
+    background-color: #f0f0f0;
+    color: #666;
+  }
+
+  &.danger {
+    background-color: #ff4d4f;
+    color: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+/* 通用卡片样式 */
+.card {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+/* 通用输入框样式 */
+.input {
+  width: 100%;
+  padding: 20rpx;
+  background-color: #f9f9f9;
+  border-radius: 10rpx;
+  font-size: 28rpx;
+}
+
+/* 通用标签样式 */
+.tag {
+  display: inline-block;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+
+  &.primary {
+    background-color: #e0f7fa;
+    color: #00bcd4;
+  }
+
+  &.success {
+    background-color: #c8f7dc;
+    color: #27ae60;
+  }
+
+  &.warning {
+    background-color: #ffeaa7;
+    color: #d35400;
+  }
+
+  &.danger {
+    background-color: #ffd3d3;
+    color: #c0392b;
+  }
+}

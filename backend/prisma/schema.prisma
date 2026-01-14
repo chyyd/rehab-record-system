@@ -1,0 +1,155 @@
+// Prisma Schema for 虎林市中医医院康复科治疗记录系统
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  password     String   // bcrypt加密
+  role         String   // physician/therapist/nurse/admin
+  name         String
+  department   String
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 关联
+  assessments        Assessment[]
+  treatmentRecords   TreatmentRecord[]
+
+  @@map("users")
+}
+
+// 患者表
+model Patient {
+  id              Int      @id @default(autoincrement())
+  name            String
+  pinyin          String   // 拼音首字母，如"wjg"（王建国）
+  gender          String
+  age             String
+  insuranceType   String
+  admissionDate   DateTime
+  dischargeDate   DateTime?
+  medicalRecordNo String   @unique  // 病历号/病案号
+  doctor          String   // 主管医师
+  diagnosis       String   // 主要诊断
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // 关联
+  assessments        Assessment[]
+  treatmentRecords   TreatmentRecord[]
+
+  @@map("patients")
+}
+
+// 治疗项目表
+model Project {
+  id             Int      @id @default(autoincrement())
+  name           String   // 项目名称
+  code           String   @unique // 项目编码
+  category       String   // PT/OT/ST/TCM等
+  defaultDuration Int     @default(30) // 默认时长(分钟)
+  allowedRoles   String   // JSON数组: ["physician", "nurse"]
+  isActive       Boolean  @default(true)
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // 关联
+  treatmentRecords TreatmentRecord[]
+
+  @@map("projects")
+}
+
+// 康复评估表
+model Assessment {
+  id                Int              @id @default(autoincrement())
+  patientId         Int
+  assessorId        Int
+  assessmentType    String   // admission/discharge
+  assessmentDate    DateTime
+  location          String           // 评估地点
+
+  // 勾选的评估项目
+  selectedItems     String           @default("[]")  // JSON数组: ["barthel", "mmse"]
+
+  // 功能评分
+  barthelIndex      Int?             // Barthel指数(0-100)
+  barthelDetails    String?          // JSON: Barthel详细得分
+  brunnstromStage   String?          // JSON: {"upper":"II期", "hand":"I期", "lower":"III期"}
+  balanceFunction   String?          // JSON: {"sitting":"I级", "standing":"0级"}
+  muscleStrength    String?          // JSON: {"leftUpper":"2级", "leftLower":"3级"}
+  muscleTone        String?          // JSON: {"leftUpper":"1级", "leftLower":"2级"} - 改良Ashworth评分
+  cognitiveMMSE     Int?             // MMSE评分(0-30)
+  mmseDetails       String?          // JSON: MMSE详细得分
+  swallowingTest    Int?             // 洼田饮水试验(1-5)
+  languageScore     Int?             // 失语症评定(0-100)
+
+  rehabGoal         String?          // 康复目标(入院)
+  rehabEffect       String?          // 康复效果(出院)
+  homeGuidance      String?          // 家庭指导(出院)
+  otherNotes        String?          // 其他备注
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  // 关联
+  patient           Patient          @relation(fields: [patientId], references: [id])
+  assessor          User             @relation(fields: [assessorId], references: [id])
+
+  @@map("assessments")
+}
+
+// 治疗记录表
+model TreatmentRecord {
+  id              Int      @id @default(autoincrement())
+  patientId       Int
+  therapistId     Int
+  projectId       Int
+  treatmentDate   DateTime
+  startTime       DateTime // 开始时间（完整时间戳）
+  endTime         DateTime // 结束时间（自动计算）
+  durationMinutes Int      // 实际治疗时长(分钟)
+  extraSeconds    Int      @default(0) // 随机增加的秒数(60-120)
+  photoCount      Int      @default(0)
+  photoFileName   String?  // 照片文件名: 150223_001.jpg
+  outcome         String?  // 患者反应/治疗效果（默认"无不良反应"）
+  notes           String?  // 备注
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // 关联
+  patient         Patient          @relation(fields: [patientId], references: [id])
+  therapist       User             @relation(fields: [therapistId], references: [id])
+  project         Project          @relation(fields: [projectId], references: [id])
+  photos          TreatmentPhoto[]
+
+  @@map("treatment_records")
+}
+
+// 照片管理表
+model TreatmentPhoto {
+  id          Int      @id @default(autoincrement())
+  recordId    Int
+  fileName    String   // 文件名: 150223_001.jpg
+  filePath    String   // 存储路径
+  fileSize    Int      // 文件大小(字节)
+  photoTime   DateTime // 拍照时间(EXIF)
+  thumbPath   String?  // 缩略图路径
+  createdAt   DateTime @default(now())
+
+  // 关联
+  record      TreatmentRecord @relation(fields: [recordId], references: [id])
+
+  @@map("treatment_photos")
+}

@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虎林市中医医院康复科治疗记录单</title>
+    <style>
+        /* A4纸打印优化 - 尺寸210mm×297mm */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white !important;
+                color: black !important;
+            }
+            .container {
+                width: 210mm;
+                height: auto;
+                min-height: 297mm;
+                margin: 0;
+                padding: 15mm;
+                box-sizing: border-box;
+            }
+            .no-print {
+                display: none;
+            }
+            .page-break {
+                page-break-after: always;
+            }
+            /* 强制黑白打印 */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                color: black !important;
+                background: white !important;
+            }
+            .treatment-type,
+            .time-badge,
+            .photo-badge,
+            .start-time,
+            .end-time,
+            .hospital-name,
+            .department,
+            .document-title,
+            .info-label,
+            .assessment-type,
+            .signature-name {
+                color: black !important;
+                font-weight: bold;
+            }
+            .compliance-stamp {
+                opacity: 0.1 !important;
+                color: black !important;
+            }
+        }
+        
+        /* 全局字体大小控制 - 最大小四(14px) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "SimSun", "宋体", serif; /* 黑白打印优化字体 */
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        body {
+            background-color: white;
+            color: black;
+            padding: 10px;
+        }
+        
+        .container {
+            width: 210mm;
+            margin: 0 auto;
+            padding: 12px;
+            background: white;
+            position: relative;
+        }
+        
+        /* 页眉样式 */
+        .header {
+            text-align: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid black;
+            padding-bottom: 8px;
+        }
+        
+        .hospital-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 3px 0;
+        }
+        
+        .department {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 3px 0;
+        }
+        
+        .document-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin: 6px 0;
+            text-decoration: underline;
+        }
+        
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+        
+        /* 患者信息卡片 - 精确对齐，防止换行 */
+        .patient-card {
+            padding: 8px 0;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+        
+        .patient-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            text-decoration: underline;
+        }
+        
+        .patient-info-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        
+        .patient-info-table td {
+            padding: 2px 4px;
+            vertical-align: top;
+            border-bottom: 1px dotted #ccc;
+            white-space: nowrap; /* 防止换行 */
+        }
+        
+        .info-label {
+            display: inline-block;
+            min-width: 60px; /* 增加最小宽度 */
+            font-weight: bold;
+            text-align: right;
+            padding-right: 5px;
+            white-space: nowrap; /* 防止标签内换行 */
+        }
+        
+        .info-value {
+            display: inline-block;
+            font-weight: normal;
+            min-width: 110px;
+            white-space: nowrap; /* 防止值内换行 */
+        }
+        
+        /* 主要诊断单独成行 */
+        .diagnosis-row {
+            width: 100%;
+        }
+        
+        .diagnosis-label {
+            display: inline-block;
+            min-width: 60px;
+            font-weight: bold;
+            text-align: right;
+            padding-right: 5px;
+            white-space: nowrap;
+        }
+        
+        .diagnosis-value {
+            display: inline-block;
+            font-weight: normal;
+            width: calc(100% - 65px); /* 剩余宽度 */
+            white-space: nowrap;
+        }
+        
+        /* 评估记录部分 */
+        .assessment-section {
+            padding: 10px 0;
+            margin-bottom: 12px;
+        }
+        
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-decoration: underline;
+        }
+        
+        .assessment-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            font-size: 12px;
+        }
+        
+        .assessment-card {
+            border: 1px solid #000;
+            padding: 8px;
+        }
+        
+        .assessment-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+        
+        .assessment-type {
+            font-size: 13px;
+        }
+        
+        .assessment-date {
+            font-size: 12px;
+        }
+        
+        .assessment-content {
+            margin-top: 6px;
+        }
+        
+        .functional-score {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            margin: 2px 0;
+            font-size: 12px;
+        }
+        
+        /* 治疗记录表格 */
+        .treatment-section {
+            padding: 10px 0;
+            margin-bottom: 12px;
+        }
+        
+        .section-title-treatment {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-decoration: underline;
+        }
+        
+        .treatment-table-container {
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        .treatment-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 11px;
+        }
+        
+        .treatment-table th {
+            font-weight: bold;
+            padding: 4px 2px;
+            text-align: center;
+            border: 1px solid #000;
+            background: #f0f0f0;
+        }
+        
+        .treatment-table td {
+            padding: 4px 2px;
+            border: 1px solid #000;
+            vertical-align: middle;
+            text-align: center;
+            word-wrap: break-word;
+        }
+        
+        .treatment-table tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        
+        .treatment-type {
+            font-weight: bold;
+        }
+        
+        .time-badge {
+            font-weight: bold;
+        }
+        
+        .photo-badge {
+            font-weight: normal;
+            white-space: nowrap;
+            font-size: 10px; /* 缩小字体以适应单元格 */
+        }
+        
+        /* 治疗时间单元格样式 */
+        .treatment-time-cell {
+            text-align: center;
+            line-height: 1.2;
+            padding: 3px 2px;
+        }
+        
+        .treatment-date {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 1px;
+            font-size: 11px;
+        }
+        
+        .time-range {
+            display: block;
+            font-size: 11px;
+        }
+        
+        .start-time {
+            font-weight: bold;
+        }
+        
+        .end-time {
+            font-weight: bold;
+        }
+        
+        /* 治疗统计部分 - 横向表格 */
+        .statistics-section {
+            padding: 10px 0;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+        
+        .statistics-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-decoration: underline;
+        }
+        
+        .statistics-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        
+        .statistics-table th,
+        .statistics-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: center;
+        }
+        
+        .statistics-table th {
+            background: #f0f0f0;
+            font-weight: bold;
+        }
+        
+        /* 签名区域 */
+        .signature-section {
+            padding: 15px 0 10px 0;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .signature-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-decoration: underline;
+        }
+        
+        .signature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        
+        .signature-item {
+            text-align: center;
+        }
+        
+        .signature-line {
+            border-top: 1px solid #000;
+            width: 80%;
+            margin: 12px auto;
+            padding-top: 2px;
+        }
+        
+        .signature-name {
+            font-weight: bold;
+            margin-top: 2px;
+            font-size: 12px;
+        }
+        
+        .signature-role {
+            font-size: 11px;
+            margin-top: 1px;
+        }
+        
+        .signature-date {
+            font-size: 11px;
+            margin-top: 1px;
+        }
+        
+        /* 页脚 */
+        .footer {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 6px;
+            border-top: 1px solid #000;
+            font-size: 11px;
+            line-height: 1.3;
+        }
+        
+        .compliance-stamp {
+            position: absolute;
+            top: 30mm;
+            right: 30mm;
+            opacity: 0.03;
+            font-size: 50px;
+            font-weight: bold;
+            transform: rotate(15deg);
+            z-index: -1;
+        }
+        
+        .print-button {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            background: #333;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            font-size: 13px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+        
+        /* 确保无横向滚动 */
+        body, .container {
+            overflow-x: hidden;
+            max-width: 100%;
+        }
+        
+        /* 响应式调整 */
+        @media screen and (max-width: 700px) {
+            .container {
+                width: 100%;
+                padding: 8px;
+            }
+            
+            .assessment-grid,
+            .signature-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .treatment-table {
+                font-size: 10px;
+            }
+            
+            .header-info {
+                flex-direction: column;
+                gap: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 合规水印 -->
+        <div class="compliance-stamp">虎林中医</div>
+        
+        <!-- 页眉 -->
+        <div class="header">
+            <div class="hospital-name">虎林市中医医院</div>
+            <div class="department">康复医学科</div>
+            <div class="document-title">康复治疗全程记录单</div>
+            <div class="header-info">
+                <div><strong>病历号：</strong> 150321</div>
+                <div><strong>打印日期：</strong> 2026年1月10日</div>
+            </div>
+        </div>
+
+        <!-- 患者基本信息 - 表格布局精确对齐，防止换行 -->
+        <div class="patient-card">
+            <div class="patient-title">患者基本信息</div>
+            <table class="patient-info-table">
+                <tr>
+                    <td><span class="info-label">姓名：</span><span class="info-value">王建国</span></td>
+                    <td><span class="info-label">性别：</span><span class="info-value">男</span></td>
+                    <td><span class="info-label">年龄：</span><span class="info-value">68岁</span></td>
+                </tr>
+                <tr>
+                    <td><span class="info-label">医保类型：</span><span class="info-value">城乡居民基本医疗保险</span></td>
+                    <td><span class="info-label">入院日期：</span><span class="info-value">2026年1月1日</span></td>
+                    <td><span class="info-label">出院日期：</span><span class="info-value">2026年1月15日</span></td>
+                </tr>
+                <tr>
+                    <td><span class="info-label">住院天数：</span><span class="info-value">15天</span></td>
+                    <td><span class="info-label">主管医师：</span><span class="info-value">李华 住院医师</span></td>
+                    <td></td>
+                </tr>
+            </table>
+            <!-- 主要诊断单独成行 -->
+            <div class="diagnosis-row">
+                <span class="diagnosis-label">主要诊断：</span>
+                <span class="diagnosis-value">脑梗死后遗症（左侧肢体功能障碍）</span>
+            </div>
+        </div>
+        
+        <!-- 两次评估记录 - 标题修改 -->
+        <div class="assessment-section">
+            <div class="section-title">康复评估记录（入院/出院）</div>
+            <div class="assessment-grid">
+                <!-- 入院评估 -->
+                <div class="assessment-card">
+                    <div class="assessment-header">
+                        <div class="assessment-type">入院评估</div>
+                        <div class="assessment-date">2026年1月1日 14:30</div>
+                    </div>
+                    <div class="assessment-content">
+                        <p><strong>评估医师：</strong>张明（康复治疗师）</p>
+                        <p><strong>评估地点：</strong>康复评定室</p>
+                        <p><strong>功能状态：</strong></p>
+                        <div class="functional-score">Barthel指数：40分（重度依赖）</div>
+                        <div class="functional-score">Brunnstrom分期：上肢Ⅱ期，手Ⅰ期，下肢Ⅲ期</div>
+                        <div class="functional-score">平衡功能：坐位平衡Ⅰ级，立位平衡0级</div>
+                        <div class="functional-score">肌力：左上肢2级，左下肢3级</div>
+                        <div class="functional-score">认知功能：MMSE评分18分（轻度认知障碍）</div>
+                        <div class="functional-score">吞咽功能：洼田饮水试验3级（轻度吞咽困难）</div>
+                        <div class="functional-score">语言功能：失语症评定45分（感觉性失语）</div>
+                        <p><strong>康复目标：</strong>提高日常生活自理能力，改善左侧肢体运动功能，2周内达到可扶拐步行</p>
+                    </div>
+                </div>
+                
+                <!-- 出院评估 -->
+                <div class="assessment-card">
+                    <div class="assessment-header">
+                        <div class="assessment-type">出院评估</div>
+                        <div class="assessment-date">2026年1月15日 09:15</div>
+                    </div>
+                    <div class="assessment-content">
+                        <p><strong>评估医师：</strong>张明（康复治疗师）</p>
+                        <p><strong>评估地点：</strong>康复评定室</p>
+                        <p><strong>功能状态：</strong></p>
+                        <div class="functional-score">Barthel指数：75分（轻度依赖）</div>
+                        <div class="functional-score">Brunnstrom分期：上肢Ⅳ期，手Ⅲ期，下肢Ⅴ期</div>
+                        <div class="functional-score">平衡功能：坐位平衡Ⅲ级，立位平衡Ⅱ级</div>
+                        <div class="functional-score">肌力：左上肢3+级，左下肢4级</div>
+                        <div class="functional-score">认知功能：MMSE评分24分（认知功能改善）</div>
+                        <div class="functional-score">吞咽功能：洼田饮水试验1级（吞咽功能基本恢复）</div>
+                        <div class="functional-score">语言功能：失语症评定65分（语言功能显著改善）</div>
+                        <p><strong>康复效果：</strong>日常生活大部分可自理，可持单拐步行50米，手功能明显改善，达到短期康复目标</p>
+                        <p><strong>家庭指导：</strong>继续家庭康复训练，1个月后门诊复诊</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 治疗记录表格 - 使用官方项目名称，照片名优化 -->
+        <div class="treatment-section">
+            <div class="section-title-treatment">
+                治疗记录明细
+            </div>
+            <div class="treatment-table-container">
+                <table class="treatment-table">
+                    <thead>
+                        <tr>
+                            <th width="10%">日期</th>
+                            <th width="18%">治疗项目</th>
+                            <th width="12%">治疗师</th>
+                            <th width="18%">治疗时间</th>
+                            <th width="10%">治疗时长</th>
+                            <th width="12%">治疗照片</th>
+                            <th width="20%">备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2026-01-02</td>
+                            <td><span class="treatment-type">运动功能训练</span></td>
+                            <td>张明</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-02</span>
+                                <span class="time-range">
+                                    <span class="start-time">08:30</span>-<span class="end-time">09:02</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">001.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-02</td>
+                            <td><span class="treatment-type">生活技能康复训练</span></td>
+                            <td>李娜</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-02</span>
+                                <span class="time-range">
+                                    <span class="start-time">10:15</span>-<span class="end-time">10:47</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">002.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-03</td>
+                            <td><span class="treatment-type">认知功能训练</span></td>
+                            <td>王强</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-03</span>
+                                <span class="time-range">
+                                    <span class="start-time">09:20</span>-<span class="end-time">09:54</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">003.jpg</span></td>
+                            <td>轻微疲劳</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-04</td>
+                            <td><span class="treatment-type">运动功能训练</span></td>
+                            <td>张明</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-04</span>
+                                <span class="time-range">
+                                    <span class="start-time">08:45</span>-<span class="end-time">09:16</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30+10分钟</span></td>
+                            <td><span class="photo-badge">004.jpg</span></td>
+                            <td>加时1次，无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-05</td>
+                            <td><span class="treatment-type">职业功能康复训练</span></td>
+                            <td>李娜</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-05</span>
+                                <span class="time-range">
+                                    <span class="start-time">14:10</span>-<span class="end-time">14:43</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">005.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-06</td>
+                            <td><span class="treatment-type">言语功能训练</span></td>
+                            <td>陈静</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-06</span>
+                                <span class="time-range">
+                                    <span class="start-time">10:00</span>-<span class="end-time">10:33</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">006.jpg</span></td>
+                            <td>轻微头晕</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-07</td>
+                            <td><span class="treatment-type">运动功能训练</span></td>
+                            <td>张明</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-07</span>
+                                <span class="time-range">
+                                    <span class="start-time">09:30</span>-<span class="end-time">10:01</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">007.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-08</td>
+                            <td><span class="treatment-type">认知功能训练</span></td>
+                            <td>王强</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-08</span>
+                                <span class="time-range">
+                                    <span class="start-time">15:20</span>-<span class="end-time">15:52</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">008.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-09</td>
+                            <td><span class="treatment-type">生活技能康复训练</span></td>
+                            <td>李娜</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-09</span>
+                                <span class="time-range">
+                                    <span class="start-time">08:55</span>-<span class="end-time">09:26</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">009.jpg</span></td>
+                            <td>轻微疲劳</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-10</td>
+                            <td><span class="treatment-type">运动功能训练</span></td>
+                            <td>张明</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-10</span>
+                                <span class="time-range">
+                                    <span class="start-time">10:30</span>-<span class="end-time">11:03</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">010.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-11</td>
+                            <td><span class="treatment-type">言语功能训练</span></td>
+                            <td>陈静</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-11</span>
+                                <span class="time-range">
+                                    <span class="start-time">14:00</span>-<span class="end-time">14:32</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">011.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-12</td>
+                            <td><span class="treatment-type">运动功能训练</span></td>
+                            <td>张明</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-12</span>
+                                <span class="time-range">
+                                    <span class="start-time">09:15</span>-<span class="end-time">09:48</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30+10分钟</span></td>
+                            <td><span class="photo-badge">012.jpg</span></td>
+                            <td>加时1次，轻微头晕</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-13</td>
+                            <td><span class="treatment-type">职业功能康复训练</span></td>
+                            <td>李娜</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-13</span>
+                                <span class="time-range">
+                                    <span class="start-time">10:45</span>-<span class="end-time">11:16</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">013.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                        <tr>
+                            <td>2026-01-14</td>
+                            <td><span class="treatment-type">认知功能训练</span></td>
+                            <td>王强</td>
+                            <td class="treatment-time-cell">
+                                <span class="treatment-date">2026-01-14</span>
+                                <span class="time-range">
+                                    <span class="start-time">15:00</span>-<span class="end-time">15:33</span>
+                                </span>
+                            </td>
+                            <td><span class="time-badge">30分钟</span></td>
+                            <td><span class="photo-badge">014.jpg</span></td>
+                            <td>无不良主诉</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 治疗统计 - 横向表格 -->
+        <div class="statistics-section">
+            <div class="statistics-title">治疗统计汇总</div>
+            <table class="statistics-table">
+                <thead>
+                    <tr>
+                        <th width="20%">运动功能训练</th>
+                        <th width="20%">生活技能康复训练</th>
+                        <th width="20%">认知功能训练</th>
+                        <th width="20%">言语功能训练</th>
+                        <th width="20%">职业功能康复训练</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>5次</td>
+                        <td>3次</td>
+                        <td>3次</td>
+                        <td>2次</td>
+                        <td>2次</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 签名区域 -->
+        <div class="signature-section">
+            <div class="signature-title">责任签名确认</div>
+            <div class="signature-grid">
+                <div class="signature-item">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">王建国</div>
+                    <div class="signature-role">患者/家属</div>
+                    <div class="signature-date">2026年1月15日</div>
+                </div>
+                <div class="signature-item">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">李华</div>
+                    <div class="signature-role">住院医师</div>
+                    <div class="signature-date">2026年1月15日</div>
+                </div>
+                <div class="signature-item">
+                    <div class="signature-line"></div>
+                    <div class="signature-name">张明</div>
+                    <div class="signature-role">康复治疗师</div>
+                    <div class="signature-date">2026年1月15日</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 页脚 - 包含照片存储说明 -->
+        <div class="footer">
+            <p>虎林市中医医院康复医学科制 | 地址：黑龙江省虎林市解放西街58号</p>
+            <p>电话：0467-5822120 | 邮编：158400</p>
+            <p>注：每次治疗开始拍照时间水印打卡，所有记录及照片保存5年备查。</p>
+            <p><strong>照片存储规范：</strong>照片按病案号+序号命名（如150223_001.jpg），存储于指定文件夹中，便于快速检索和管理。</p>
+        </div>
+        
+        <!-- 打印按钮（仅在屏幕显示） -->
+        <button class="print-button no-print" onclick="window.print()">
+            🖨️ 打印记录单
+        </button>
+    </div>
+
+    <script>
+        // 打印优化
+        window.addEventListener('beforeprint', function() {
+            document.body.style.backgroundColor = 'white';
+        });
+
+        window.addEventListener('afterprint', function() {
+            document.body.style.backgroundColor = 'white';
+        });
+        
+        // 模拟结束时间随机增加2-3分钟
+        function generateRealisticEndTime(startTime, durationMinutes) {
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const totalStartMinutes = hours * 60 + minutes;
+            const baseEndMinutes = totalStartMinutes + durationMinutes;
+            const randomAddition = 2 + Math.random();
+            const actualEndMinutes = baseEndMinutes + randomAddition;
+            const endHours = Math.floor(actualEndMinutes / 60);
+            const endMinutes = Math.floor(actualEndMinutes % 60);
+            return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化
+            console.log('虎林市中医医院康复治疗记录单');
+        });
+    </script>
+</body>
+</html>

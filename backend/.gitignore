@@ -1,0 +1,35 @@
+# dependencies
+/node_modules
+.pnp
+.pnp.js
+
+# testing
+/coverage
+*.log
+
+# environment
+.env
+.env.local
+.env.*.local
+
+# build
+/dist
+/build
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# database
+data/*.db
+data/*.db-journal
+
+# uploads
+uploads/*
+!uploads/.gitkeep

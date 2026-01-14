@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(if [ ! -d \"node_modules\" ])",
+      "Bash(then echo \"需要安装依赖\")",
+      "Bash(else:*)",
+      "Bash(fi:*)",
+      "Bash(npm run prisma:generate:*)",
+      "Bash(test:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npm run prisma:seed:*)",
+      "Bash(npm run start:*)",
+      "Bash(curl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoxLCJpYXQiOjE3NjgwNTY3MjIsImV4cCI6MTc2ODY2MTUyMn0.SF2sJN6ndMNt1_k2BYd7pL-ja0M5QXLPuqClNHt52Pw\")",
+      "Bash(grep:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoxLCJpYXQiOjE3NjgwNTY5ODYsImV4cCI6MTc2ODY2MTc4Nn0.0g8Q2LuXp0MqwY7RWY1WEl0ZVmtbvD18K_Slt2zPppI\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRoZXJhcGlzdDAwMSIsInN1YiI6NCwiaWF0IjoxNzY4MDU3MDMyLCJleHAiOjE3Njg2NjE4MzJ9.4QcP4IyFqdIdlOedkzEztezvIvINNh2gl18UGZvlhf0\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoxLCJpYXQiOjE3NjgwNTczODEsImV4cCI6MTc2ODY2MjE4MX0.ffhrQrAJXuzvvDtVrpxE32dfNiMopVY7MT8Qxq6eZtg\")",
+      "Bash(__NEW_LINE__ echo \"=== TEST 1: Get all patients ===\")",
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Bash(__NEW_LINE__ curl -s \"http://localhost:3000/patients/search?q=wjg\" -H \"Authorization: Bearer $TOKEN\")"
+    ]
+  }
+}

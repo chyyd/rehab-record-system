@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速启动指南 - 虎林市中医医院康复科系统</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #10b981;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #10b981;
+            margin: 0;
+        }
+        .header p {
+            color: #666;
+            margin-top: 10px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #10b981;
+            border-left: 4px solid #10b981;
+            padding-left: 10px;
+        }
+        .code-block {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .code-block code {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+        }
+        .step {
+            background: #f9f9f9;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .step-number {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        table th {
+            background: #10b981;
+            color: white;
+        }
+        .warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        @media print {
+            body { font-size: 12pt; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏥 虎林市中医医院康复科治疗记录系统</h1>
+        <p>快速启动指南 v1.0</p>
+    </div>
+
+    <div class="success">
+        <strong>✅ 后端API已完成开发！</strong><br>
+        本系统已完成核心后端API开发，包括认证、用户管理、患者管理、治疗项目配置和治疗记录管理。
+    </div>
+
+    <div class="section">
+        <h2>📋 系统要求</h2>
+        <ul>
+            <li>Node.js 18.0 或更高版本</li>
+            <li>npm 或 yarn 包管理器</li>
+            <li>Windows/Linux/macOS 操作系统</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>🚀 快速启动（3步完成）</h2>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>双击运行启动脚本</strong><br>
+            找到项目根目录下的 <code>test-api.bat</code> 文件，双击运行。<br>
+            脚本会自动完成所有初始化工作。
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>等待服务启动</strong><br>
+            首次运行会自动安装依赖（约2-3分钟），后续启动只需几秒钟。<br>
+            看到以下提示表示启动成功：
+            <div class="code-block">
+                <code>🚀 服务器运行在: http://localhost:3000<br>
+📚 API文档地址: http://localhost:3000/api-docs</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>访问API文档</strong><br>
+            在浏览器中打开：<a href="http://localhost:3000/api-docs" target="_blank">http://localhost:3000/api-docs</a><br>
+            在线测试所有API接口，查看请求/响应格式。
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>👤 测试账号</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>角色</th>
+                    <th>用户名</th>
+                    <th>密码</th>
+                    <th>可操作项目</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>管理员</td>
+                    <td>admin</td>
+                    <td>123456</td>
+                    <td>所有权限 + 用户管理</td>
+                </tr>
+                <tr>
+                    <td>医师</td>
+                    <td>doc001</td>
+                    <td>123456</td>
+                    <td>针灸治疗</td>
+                </tr>
+                <tr>
+                    <td>护士</td>
+                    <td>nurse001</td>
+                    <td>123456</td>
+                    <td>电刺激治疗</td>
+                </tr>
+                <tr>
+                    <td>治疗师</td>
+                    <td>therapist001</td>
+                    <td>123456</td>
+                    <td>运动/生活/认知/言语/职业康复训练</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>🔑 核心功能演示</h2>
+
+        <h3>1. 登录获取Token</h3>
+        <div class="code-block">
+            <code>curl -X POST http://localhost:3000/auth/login \<br>
+  -H "Content-Type: application/json" \<br>
+  -d '{"username":"doc001","password":"123456"}'</code>
+        </div>
+
+        <h3>2. 搜索患者（病历号后3位）</h3>
+        <div class="code-block">
+            <code>curl -X GET "http://localhost:3000/patients/search?q=321" \<br>
+  -H "Authorization: Bearer YOUR_TOKEN"</code>
+        </div>
+
+        <h3>3. 获取可操作项目（根据角色自动过滤）</h3>
+        <div class="code-block">
+            <code>curl -X GET http://localhost:3000/projects/my \<br>
+  -H "Authorization: Bearer YOUR_TOKEN"</code>
+        </div>
+
+        <h3>4. 创建治疗记录（自动计算结束时间）</h3>
+        <div class="code-block">
+            <code>curl -X POST http://localhost:3000/records \<br>
+  -H "Authorization: Bearer YOUR_TOKEN" \<br>
+  -H "Content-Type: application/json" \<br>
+  -d '{"patientId":1,"projectId":1,"treatmentDate":"2024-01-10T14:30:00Z","startTime":"2024-01-10T14:30:00Z"}'</code>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>⚙️ 手动启动（如脚本失败）</h2>
+
+        <div class="info">
+            <strong>如果自动启动脚本失败，请按以下步骤手动启动：</strong>
+        </div>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            打开命令行窗口，进入backend目录
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            安装依赖：
+            <div class="code-block">
+                <code>npm install</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            生成Prisma客户端：
+            <div class="code-block">
+                <code>npm run prisma:generate</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            运行数据库迁移：
+            <div class="code-block">
+                <code>npx prisma migrate dev --name init</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">5</span>
+            初始化种子数据：
+            <div class="code-block">
+                <code>npm run prisma:seed</code>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">6</span>
+            启动开发服务器：
+            <div class="code-block">
+                <code>npm run start:dev</code>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>📊 系统架构</h2>
+        <ul>
+            <li><strong>后端框架</strong>: NestJS + TypeScript</li>
+            <li><strong>数据库</strong>: SQLite（无需安装服务）</li>
+            <li><strong>ORM</strong>: Prisma</li>
+            <li><strong>认证</strong>: JWT + Passport</li>
+            <li><strong>API文档</strong>: Swagger</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>📁 重要文件说明</h2>
+        <ul>
+            <li><code>backend/data/database.db</code> - SQLite数据库文件（自动生成）</li>
+            <li><code>backend/prisma/schema.prisma</code> - 数据库模型定义</li>
+            <li><code>backend/prisma/seed.ts</code> - 种子数据（5个用户、7个项目、5个患者）</li>
+            <li><code>demo.html</code> - 交互演示页面（查看UI设计）</li>
+            <li><code>API测试指南.md</code> - 完整的API测试文档</li>
+        </ul>
+    </div>
+
+    <div class="warning">
+        <strong>⚠️ 注意事项</strong><br>
+        1. 首次启动需要安装依赖，可能需要2-3分钟<br>
+        2. 确保端口3000未被占用<br>
+        3. 数据库文件会自动生成在 backend/data/ 目录下<br>
+        4. 备份数据只需复制 database.db 文件即可
+    </div>
+
+    <div class="section">
+        <h2>📞 技术支持</h2>
+        <ul>
+            <li>API文档: <a href="http://localhost:3000/api-docs">http://localhost:3000/api-docs</a></li>
+            <li>完整文档: 查看 项目交付.md</li>
+            <li>测试用例: 查看 测试用例.md</li>
+            <li>开发进度: 查看 开发进度.md</li>
+        </ul>
+    </div>
+
+    <div class="success" style="margin-top: 30px; text-align: center;">
+        <strong>🎉 系统已准备就绪，开始使用吧！</strong><br>
+        双击 <code>test-api.bat</code> 启动系统
+    </div>
+
+    <div class="section no-print" style="margin-top: 30px; text-align: center; color: #999; font-size: 12px;">
+        <p>Copyright © 2024 虎林市中医医院康复科</p>
+    </div>
+</body>
+</html>

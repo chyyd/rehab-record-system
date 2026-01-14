@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成 TabBar 图标</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .preview {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        .icon-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+        button {
+            background: #0ea5e9;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #0284c7;
+        }
+        .download-btn {
+            background: #10b981;
+        }
+        .download-btn:hover {
+            background: #059669;
+        }
+        .info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 扫码图标生成器</h1>
+
+        <div class="preview">
+            <div class="icon-box">
+                <canvas id="canvasGray" width="162" height="162"></canvas>
+                <span>未选中状态 (灰色)</span>
+                <button class="download-btn" onclick="downloadGray()">下载 scan.png</button>
+            </div>
+            <div class="icon-box">
+                <canvas id="canvasBlue" width="162" height="162"></canvas>
+                <span>选中状态 (蓝色)</span>
+                <button class="download-btn" onclick="downloadBlue()">下载 scan-active.png</button>
+            </div>
+        </div>
+
+        <button onclick="downloadAll()">一键下载两个图标</button>
+
+        <div class="info">
+            <p>图标尺寸：81px × 81px（显示时放大2倍以便查看）</p>
+            <p>颜色：灰色 #7A7E83 / 蓝色 #0ea5e9</p>
+            <p>下载后将文件保存到：<code>mobile-frontend/src/static/tabbar/</code></p>
+        </div>
+    </div>
+
+    <script>
+        // 绘制扫码图标
+        function drawQRCodeIcon(ctx, color, size, lineWidth) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+
+            const padding = size * 0.2;
+            const cornerSize = size * 0.25;
+
+            // 左上角
+            ctx.beginPath();
+            ctx.moveTo(padding, padding + cornerSize);
+            ctx.lineTo(padding, padding);
+            ctx.lineTo(padding + cornerSize, padding);
+            ctx.stroke();
+
+            // 右上角
+            ctx.beginPath();
+            ctx.moveTo(size - padding - cornerSize, padding);
+            ctx.lineTo(size - padding, padding);
+            ctx.lineTo(size - padding, padding + cornerSize);
+            ctx.stroke();
+
+            // 左下角
+            ctx.beginPath();
+            ctx.moveTo(padding, size - padding - cornerSize);
+            ctx.lineTo(padding, size - padding);
+            ctx.lineTo(padding + cornerSize, size - padding);
+            ctx.stroke();
+
+            // 右下角
+            ctx.beginPath();
+            ctx.moveTo(size - padding - cornerSize, size - padding);
+            ctx.lineTo(size - padding, size - padding);
+            ctx.lineTo(size - padding, size - padding - cornerSize);
+            ctx.stroke();
+
+            // 中间扫描线（水平）
+            ctx.beginPath();
+            ctx.moveTo(padding + cornerSize, size / 2);
+            ctx.lineTo(size - padding - cornerSize, size / 2);
+            ctx.stroke();
+
+            // 中间扫描线（垂直）
+            ctx.beginPath();
+            ctx.moveTo(size / 2, padding + cornerSize);
+            ctx.lineTo(size / 2, size - padding - cornerSize);
+            ctx.stroke();
+        }
+
+        // 初始化画布
+        function initCanvas() {
+            const canvasGray = document.getElementById('canvasGray');
+            const canvasBlue = document.getElementById('canvasBlue');
+            const ctxGray = canvasGray.getContext('2d');
+            const ctxBlue = canvasBlue.getContext('2d');
+
+            // 清空画布
+            ctxGray.clearRect(0, 0, 162, 162);
+            ctxBlue.clearRect(0, 0, 162, 162);
+
+            // 绘制灰色图标（放大2倍显示，实际81px）
+            drawQRCodeIcon(ctxGray, '#7A7E83', 81, 4);
+
+            // 绘制蓝色图标
+            drawQRCodeIcon(ctxBlue, '#0ea5e9', 81, 4);
+        }
+
+        // 下载图标（缩放到实际尺寸81x81）
+        function downloadCanvas(canvas, filename) {
+            // 创建临时画布用于生成81x81尺寸
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = 81;
+            tempCanvas.height = 81;
+            const tempCtx = tempCanvas.getContext('2d');
+
+            // 重新绘制
+            drawQRCodeIcon(tempCtx,
+                filename.includes('active') ? '#0ea5e9' : '#7A7E83',
+                81, 2);
+
+            // 转换为 blob 并下载
+            tempCanvas.toBlob(function(blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        function downloadGray() {
+            const canvas = document.getElementById('canvasGray');
+            downloadCanvas(canvas, 'scan.png');
+        }
+
+        function downloadBlue() {
+            const canvas = document.getElementById('canvasBlue');
+            downloadCanvas(canvas, 'scan-active.png');
+        }
+
+        function downloadAll() {
+            downloadGray();
+            setTimeout(downloadBlue, 500);
+        }
+
+        // 页面加载时初始化
+        window.onload = initCanvas;
+    </script>
+</body>
+</html>

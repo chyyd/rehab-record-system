@@ -1,0 +1,15 @@
+  async search(query: string) {
+    const patients = await this.prisma.patient.findMany();
+
+    return patients.filter((patient) => {
+      const last3Digits = (patient.medicalRecordNo || '').slice(-3);
+      const pinyin = patient.pinyin || '';
+      const pinyinMatch = pinyin.toLowerCase().includes(query.toLowerCase());
+      const nameMatch = (patient.name || '').includes(query);
+      const idMatch = (patient.medicalRecordNo || '').includes(query);
+
+      return (
+        last3Digits === query || pinyinMatch || nameMatch || idMatch
+      );
+    });
+  }
