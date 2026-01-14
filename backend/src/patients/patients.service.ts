@@ -6,7 +6,23 @@ export class PatientsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
+    // 只返回在院患者（未出院或出院日期在今天之后）
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     return this.prisma.patient.findMany({
+      where: {
+        OR: [
+          {
+            dischargeDate: null,
+          },
+          {
+            dischargeDate: {
+              gt: today, // 大于今天，排除今天已出院的患者
+            },
+          },
+        ],
+      },
       orderBy: {
         admissionDate: 'desc',
       },
@@ -15,11 +31,29 @@ export class PatientsService {
 
   async search(query: string) {
     // 支持病历号后3位、拼音首字母、姓名模糊搜索
+    // 只返回在院患者
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const patients = await this.prisma.patient.findMany({
+      where: {
+        OR: [
+          {
+            dischargeDate: null,
+          },
+          {
+            dischargeDate: {
+              gt: today, // 大于今天，排除今天已出院的患者
+            },
+          },
+        ],
+      },
+    });
+
     if (!query) {
-      return this.prisma.patient.findMany();
+      return patients;
     }
 
-    const patients = await this.prisma.patient.findMany();
     const queryLower = query.toLowerCase();
 
     return patients.filter((patient) => {
@@ -141,6 +175,7 @@ export class PatientsService {
   }
 
   async getTodayPatients() {
+    // 获取今日待治疗患者（已入院且未出院或出院日期在今天之后）
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -149,13 +184,15 @@ export class PatientsService {
         admissionDate: {
           lte: new Date(),
         },
+        // 只返回未出院的患者，或出院日期在今天之后的患者
+        // 排除今天已出院的患者
         OR: [
           {
             dischargeDate: null,
           },
           {
             dischargeDate: {
-              gte: today,
+              gt: today, // 改为 gt（大于），排除今天已出院的患者
             },
           },
         ],
