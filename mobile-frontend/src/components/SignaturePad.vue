@@ -6,12 +6,10 @@
         <text class="header-close" @click="closeModal">✕</text>
       </view>
 
-      <view class="canvas-wrapper" :id="canvasWrapperId">
-        <!-- canvas将通过JS动态创建 -->
-      </view>
-
-      <view class="signature-tips">
-        <text class="tips-text">请在此区域签字</text>
+      <view class="canvas-wrapper">
+        <view class="canvas-inner" :id="canvasWrapperId">
+          <!-- canvas将由smooth-signature管理 -->
+        </view>
       </view>
 
       <view class="signature-actions">
@@ -27,7 +25,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
+import SmoothSignature from 'smooth-signature'
 
 const props = defineProps<{
   visible: boolean
@@ -39,28 +38,23 @@ const emit = defineEmits<{
 }>()
 
 const canvasWrapperId = 'canvas-wrapper-' + Date.now()
+const signature = ref<SmoothSignature | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
-const ctx = ref<CanvasRenderingContext2D | null>(null)
-const hasSigned = ref(false)
-const isDrawing = ref(false)
-const lastX = ref(0)
-const lastY = ref(0)
 
 watch(() => props.visible, (newVal) => {
   if (newVal) {
     nextTick(() => {
       setTimeout(() => {
-        initCanvas()
+        initSignature()
       }, 300)
     })
   } else {
-    // 关闭时清理canvas
-    cleanupCanvas()
+    cleanupSignature()
   }
 })
 
-function initCanvas() {
-  console.log('开始初始化Canvas')
+function initSignature() {
+  console.log('开始初始化SmoothSignature')
 
   const wrapper = document.getElementById(canvasWrapperId)
   if (!wrapper) {
@@ -68,183 +62,72 @@ function initCanvas() {
     return
   }
 
-  // 获取屏幕尺寸（假设手机横屏）
-  const screenWidth = window.innerWidth
-  const screenHeight = window.innerHeight
+  // 等待下一帧，获取wrapper的实际渲染尺寸
+  requestAnimationFrame(() => {
+    const rect = wrapper.getBoundingClientRect()
+    console.log('Wrapper实际尺寸:', rect)
 
-  // 横屏模式：Canvas尺寸适配屏幕
-  const width = screenWidth - 32
-  const height = screenHeight - 180
+    // 使用wrapper的实际尺寸作为canvas尺寸
+    const width = rect.width
+    const height = rect.height
 
-  console.log('Canvas横屏尺寸:', { width, height, screenWidth, screenHeight })
+    console.log('Canvas尺寸:', { width, height })
 
-  // 创建canvas元素
-  const canvasEl = document.createElement('canvas')
-  canvasEl.width = width
-  canvasEl.height = height
-  canvasEl.style.width = '100%'
-  canvasEl.style.height = '100%'
-  canvasEl.style.backgroundColor = '#fff'
-  canvasEl.style.cursor = 'crosshair'
-  canvasEl.id = 'signature-canvas'
+    // 创建canvas元素
+    const canvasEl = document.createElement('canvas')
+    canvasEl.width = width
+    canvasEl.height = height
+    canvasEl.style.width = '100%'
+    canvasEl.style.height = '100%'
+    canvasEl.style.backgroundColor = '#fff'
+    canvasEl.style.cursor = 'crosshair'
+    canvasEl.id = 'signature-canvas'
 
-  // 清空wrapper并添加canvas
-  wrapper.innerHTML = ''
-  wrapper.appendChild(canvasEl)
+    // 清空wrapper并添加canvas
+    wrapper.innerHTML = ''
+    wrapper.appendChild(canvasEl)
 
-  canvas.value = canvasEl
+    canvas.value = canvasEl
 
-  // 获取2D上下文
-  const context = canvasEl.getContext('2d')
-  if (!context) {
-    console.error('无法获取Canvas 2D上下文')
-    return
-  }
+    try {
+      // 初始化SmoothSignature
+      signature.value = new SmoothSignature(canvasEl, {
+        width: width,
+        height: height,
+        scale: window.devicePixelRatio || 2, // 提高清晰度
+        minWidth: 4,
+        maxWidth: 10,
+        color: '#000000',
+        bgColor: '#ffffff',
+        openSmooth: true // 开启笔锋效果
+      })
 
-  // 用白色填充背景（防止背景透明）
-  context.fillStyle = '#FFFFFF'
-  context.fillRect(0, 0, width, height)
-
-  // 设置画笔样式
-  context.strokeStyle = '#000000'
-  context.lineWidth = 6
-  context.lineCap = 'round'
-  context.lineJoin = 'round'
-
-  ctx.value = context
-
-  // 绑定事件
-  bindCanvasEvents(canvasEl)
-
-  console.log('Canvas初始化成功')
-}
-
-function bindCanvasEvents(canvasEl: HTMLCanvasElement) {
-  // 鼠标事件
-  canvasEl.addEventListener('mousedown', (e: MouseEvent) => {
-    console.log('Mouse Down事件触发')
-    e.preventDefault()
-    e.stopPropagation()
-
-    isDrawing.value = true
-    const rect = canvasEl.getBoundingClientRect()
-    lastX.value = e.clientX - rect.left
-    lastY.value = e.clientY - rect.top
-
-    console.log('Mouse Down坐标:', { x: lastX.value, y: lastY.value, rect })
-
-    // 画一个点
-    if (ctx.value) {
-      ctx.value.beginPath()
-      ctx.value.arc(lastX.value, lastY.value, 3, 0, Math.PI * 2)
-      ctx.value.fill()
+      console.log('✓ SmoothSignature初始化成功')
+    } catch (error) {
+      console.error('SmoothSignature初始化失败:', error)
     }
   })
-
-  canvasEl.addEventListener('mousemove', (e: MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (!isDrawing.value) return
-
-    const rect = canvasEl.getBoundingClientRect()
-    const currentX = e.clientX - rect.left
-    const currentY = e.clientY - rect.top
-
-    if (ctx.value) {
-      ctx.value.beginPath()
-      ctx.value.moveTo(lastX.value, lastY.value)
-      ctx.value.lineTo(currentX, currentY)
-      ctx.value.stroke()
-    }
-
-    lastX.value = currentX
-    lastY.value = currentY
-    hasSigned.value = true
-  })
-
-  canvasEl.addEventListener('mouseup', (e: MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    isDrawing.value = false
-    console.log('Mouse Up')
-  })
-
-  canvasEl.addEventListener('mouseleave', (e: MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    isDrawing.value = false
-    console.log('Mouse Leave')
-  })
-
-  // 触摸事件
-  canvasEl.addEventListener('touchstart', (e: TouchEvent) => {
-    console.log('Touch Start事件触发')
-    e.preventDefault()
-    e.stopPropagation()
-
-    isDrawing.value = true
-    const touch = e.touches[0]
-    const rect = canvasEl.getBoundingClientRect()
-    lastX.value = touch.clientX - rect.left
-    lastY.value = touch.clientY - rect.top
-
-    if (ctx.value) {
-      ctx.value.beginPath()
-      ctx.value.arc(lastX.value, lastY.value, 3, 0, Math.PI * 2)
-      ctx.value.fill()
-    }
-  })
-
-  canvasEl.addEventListener('touchmove', (e: TouchEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    if (!isDrawing.value) return
-
-    const touch = e.touches[0]
-    const rect = canvasEl.getBoundingClientRect()
-    const currentX = touch.clientX - rect.left
-    const currentY = touch.clientY - rect.top
-
-    if (ctx.value) {
-      ctx.value.beginPath()
-      ctx.value.moveTo(lastX.value, lastY.value)
-      ctx.value.lineTo(currentX, currentY)
-      ctx.value.stroke()
-    }
-
-    lastX.value = currentX
-    lastY.value = currentY
-    hasSigned.value = true
-  })
-
-  canvasEl.addEventListener('touchend', (e: TouchEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    isDrawing.value = false
-    console.log('Touch End')
-  })
-
-  canvasEl.addEventListener('touchcancel', (e: TouchEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    isDrawing.value = false
-  })
-
-  console.log('Canvas事件绑定完成')
 }
 
 function clear() {
-  if (canvas.value && ctx.value) {
-    ctx.value.clearRect(0, 0, canvas.value.width, canvas.value.height)
-    hasSigned.value = false
+  if (signature.value) {
+    signature.value.clear()
     console.log('Canvas已清空')
   }
 }
 
 function confirm() {
-  if (!hasSigned.value) {
+  if (!signature.value) {
+    uni.showToast({
+      title: '签名未初始化',
+      icon: 'none',
+      duration: 2000
+    })
+    return
+  }
+
+  // 检查是否为空
+  if (signature.value.isEmpty()) {
     uni.showToast({
       title: '请先签字',
       icon: 'none',
@@ -253,36 +136,17 @@ function confirm() {
     return
   }
 
-  if (!canvas.value) {
-    uni.showToast({
-      title: 'Canvas未初始化',
-      icon: 'none',
-      duration: 2000
-    })
-    return
-  }
-
   try {
-    // 旋转Canvas 90度（顺时针）
-    const originalCanvas = canvas.value
-    const rotatedCanvas = document.createElement('canvas')
-    // 旋转后：宽=原高，高=原宽
-    rotatedCanvas.width = originalCanvas.height
-    rotatedCanvas.height = originalCanvas.width
+    // 获取旋转后的Canvas（逆时针90度）
+    const rotatedCanvas = signature.value.getRotateCanvas(-90)
 
-    const rotatedCtx = rotatedCanvas.getContext('2d')
-    if (!rotatedCtx) {
-      throw new Error('无法获取旋转Canvas的上下文')
+    if (!rotatedCanvas) {
+      throw new Error('旋转Canvas失败')
     }
-
-    // 旋转并绘制原图（逆时针90度）
-    rotatedCtx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2)
-    rotatedCtx.rotate(-90 * Math.PI / 180)
-    rotatedCtx.drawImage(originalCanvas, -originalCanvas.width / 2, -originalCanvas.height / 2)
 
     // 转换为图片
     const dataUrl = rotatedCanvas.toDataURL('image/png')
-    console.log('签名图片旋转后生成成功，长度:', dataUrl.length)
+    console.log('签名图片生成成功，长度:', dataUrl.length)
     emit('confirm', dataUrl)
   } catch (error) {
     console.error('生成签名图片失败:', error)
@@ -294,21 +158,23 @@ function confirm() {
   }
 }
 
-function cleanupCanvas() {
+function cleanupSignature() {
   const wrapper = document.getElementById(canvasWrapperId)
   if (wrapper) {
     wrapper.innerHTML = ''
   }
+  signature.value = null
   canvas.value = null
-  ctx.value = null
-  hasSigned.value = false
-  isDrawing.value = false
 }
 
 function closeModal() {
-  cleanupCanvas()
+  cleanupSignature()
   emit('close')
 }
+
+onBeforeUnmount(() => {
+  cleanupSignature()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -323,12 +189,19 @@ function closeModal() {
   overflow: hidden;
 }
 
+// 整个签名界面顺时针旋转90度
 .signature-landscape {
-  width: 100%;
-  height: 100%;
+  width: 100vh;
+  height: 100vw;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
   display: flex;
   flex-direction: column;
   padding: 32rpx;
+  box-sizing: border-box;
 }
 
 .signature-header {
@@ -336,9 +209,9 @@ function closeModal() {
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 20rpx 0;
-  margin-bottom: 16rpx;
-  height: 80rpx;
+  padding: 8rpx 0;
+  margin-bottom: 8rpx;
+  height: 56rpx;
 
   .header-title {
     font-size: 36rpx;
@@ -368,25 +241,29 @@ function closeModal() {
   border-radius: 16rpx;
   overflow: hidden;
   background-color: #fafafa;
-  margin-bottom: 16rpx;
+  margin-bottom: 8rpx;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.signature-tips {
-  text-align: center;
-  margin-bottom: 16rpx;
-  height: 40rpx;
-
-  .tips-text {
-    font-size: 26rpx;
-    color: #94a3b8;
-  }
+.canvas-inner {
+  // 旋转后宽高互换，设置足够大的尺寸以填充整个wrapper
+  width: 200vmin;
+  height: 200vmin;
+  // 反向旋转90度，抵消容器的旋转，使canvas坐标正常
+  // 居中对齐并旋转
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
 }
 
 .signature-actions {
   display: flex;
   gap: 16rpx;
-  height: 88rpx;
+  height: 72rpx;
 
   .action-btn {
     flex: 1;
