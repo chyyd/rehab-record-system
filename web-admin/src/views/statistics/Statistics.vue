@@ -189,7 +189,7 @@
             </template>
 
             <el-table :data="patientStats" stripe>
-              <el-table-column prop="patientName" label="患者姓名" />
+              <el-table-column prop="patientName" label="患者姓名" width="120" />
               <el-table-column prop="medicalRecordNo" label="病历号" width="120" />
               <el-table-column prop="count" label="治疗次数" width="100" />
               <el-table-column prop="totalDuration" label="总时长(小时)" width="150" />
