@@ -466,7 +466,12 @@ function handleEdit(row: any) {
 }
 
 function handleViewRecords(row: any) {
-  router.push(`/records?patientId=${row.id}`)
+  // 如果是已出院患者，传递discharged参数
+  if (row.dischargeDate) {
+    router.push(`/records?patientId=${row.id}&discharged=true`)
+  } else {
+    router.push(`/records?patientId=${row.id}`)
+  }
 }
 
 function handleDischarge(row: any) {

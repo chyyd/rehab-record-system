@@ -482,13 +482,21 @@ onMounted(async () => {
 
   // 检查URL参数，如果有patientId则自动筛选
   const patientIdFromUrl = route.query.patientId
+  const isDischarged = route.query.discharged === 'true'
+
   if (patientIdFromUrl) {
+    // 如果是已出院患者，切换到已出院标签
+    if (isDischarged) {
+      activeTab.value = 'discharged'
+    }
+
     filters.patientId = parseInt(patientIdFromUrl as string)
     await loadData()
 
     // 显示提示信息
     if (currentPatient.value) {
-      ElMessage.success(`已自动筛选患者：${currentPatient.value.name}`)
+      const statusText = isDischarged ? '已出院患者' : '在院患者'
+      ElMessage.success(`已自动筛选${statusText}：${currentPatient.value.name}`)
     }
   } else {
     await loadData()
@@ -496,12 +504,20 @@ onMounted(async () => {
 })
 
 // 监听路由参数变化
-watch(() => route.query.patientId, async (newPatientId) => {
-  if (newPatientId) {
-    filters.patientId = parseInt(newPatientId as string)
+watch(() => route.query, async (query) => {
+  if (query.patientId) {
+    // 检查是否需要切换标签
+    const isDischarged = query.discharged === 'true'
+    if (isDischarged && activeTab.value !== 'discharged') {
+      activeTab.value = 'discharged'
+    } else if (!isDischarged && activeTab.value !== 'admitted') {
+      activeTab.value = 'admitted'
+    }
+
+    filters.patientId = parseInt(query.patientId as string)
     await loadData()
   }
-})
+}, { deep: true })
 
 async function loadPatients() {
   try {
@@ -576,9 +592,10 @@ async function loadData() {
 function handleSearch() {
   pagination.page = 1
 
-  // 更新URL参数，保持patientId
+  // 更新URL参数，保持patientId和discharged
   const query: any = {}
   if (filters.patientId) query.patientId = filters.patientId
+  if (activeTab.value === 'discharged') query.discharged = 'true'
 
   router.push({ path: '/records', query })
 
@@ -606,7 +623,12 @@ function handlePatientChange() {
 }
 
 function handleTabChange() {
-  // 标签切换时的处理（如果需要）
+  // 标签切换时更新URL参数
+  const query: any = {}
+  if (filters.patientId) query.patientId = filters.patientId
+  if (activeTab.value === 'discharged') query.discharged = 'true'
+
+  router.push({ path: '/records', query })
 }
 
 function handleAdd() {
