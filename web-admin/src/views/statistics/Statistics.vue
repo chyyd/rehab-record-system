@@ -85,7 +85,7 @@
       <!-- Statistics Cards -->
       <el-row :gutter="20" class="stats-row">
         <el-col :span="6">
-          <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/patients')">
+          <el-card shadow="hover" class="stat-card-wrapper">
             <div class="stat-card">
               <div class="stat-icon">
                 <el-icon :size="30"><Document /></el-icon>
@@ -99,7 +99,7 @@
         </el-col>
 
         <el-col :span="6">
-          <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/records')">
+          <el-card shadow="hover" class="stat-card-wrapper">
             <div class="stat-card">
               <div class="stat-icon">
                 <el-icon :size="30"><Clock /></el-icon>
@@ -113,7 +113,7 @@
         </el-col>
 
         <el-col :span="6">
-          <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/patients')">
+          <el-card shadow="hover" class="stat-card-wrapper">
             <div class="stat-card">
               <div class="stat-icon">
                 <el-icon :size="30"><User /></el-icon>
@@ -127,7 +127,7 @@
         </el-col>
 
         <el-col :span="6">
-          <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/users')">
+          <el-card shadow="hover" class="stat-card-wrapper">
             <div class="stat-card">
               <div class="stat-icon">
                 <el-icon :size="30"><UserFilled /></el-icon>
@@ -420,7 +420,6 @@ function navigateTo(path: string) {
 <style lang="scss" scoped>
 .statistics {
   .stat-card-wrapper {
-    cursor: pointer;
     transition: all 0.2s;
 
     &:hover {

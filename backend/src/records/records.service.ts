@@ -309,45 +309,60 @@ export class RecordsService {
     const records = await this.prisma.treatmentRecord.findMany({
       where,
       include: {
-        project: true,
-        therapist: true,
+        patient: {
+          select: {
+            name: true,
+            medicalRecordNo: true,
+          },
+        },
+        project: {
+          select: {
+            name: true,
+            category: true,
+          },
+        },
+        therapist: {
+          select: {
+            name: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: {
+        treatmentDate: 'desc',
       },
     });
 
-    // 按项目统计
-    const projectStats = records.reduce((acc, record) => {
-      const projectName = record.project.name;
-      if (!acc[projectName]) {
-        acc[projectName] = {
-          project: projectName,
-          count: 0,
-          totalMinutes: 0,
-        };
-      }
-      acc[projectName].count++;
-      acc[projectName].totalMinutes += record.durationMinutes;
-      return acc;
-    }, {});
-
-    // 按治疗师统计
-    const therapistStats = records.reduce((acc, record) => {
-      const therapistName = record.therapist.name;
-      if (!acc[therapistName]) {
-        acc[therapistName] = {
-          therapist: therapistName,
-          count: 0,
-          totalMinutes: 0,
-        };
-      }
-      acc[therapistName].count++;
-      acc[therapistName].totalMinutes += record.durationMinutes;
-      return acc;
-    }, {});
-
+    // 返回格式与前端期望一致
     return {
+      records: records,
       totalRecords: records.length,
-      projectStats: Object.values(projectStats),
-      therapistStats: Object.values(therapistStats),
+      projectStats: records.reduce((acc, record) => {
+        const projectName = record.project.name;
+        if (!acc[projectName]) {
+          acc[projectName] = {
+            project: projectName,
+            count: 0,
+            totalMinutes: 0,
+          };
+        }
+        acc[projectName].count++;
+        acc[projectName].totalMinutes += record.durationMinutes || 0;
+        return acc;
+      }, {}),
+      therapistStats: records.reduce((acc, record) => {
+        const therapistName = record.therapist.name;
+        if (!acc[therapistName]) {
+          acc[therapistName] = {
+            therapist: therapistName,
+            count: 0,
+            totalMinutes: 0,
+          };
+        }
+        acc[therapistName].count++;
+        acc[therapistName].totalMinutes += record.durationMinutes || 0;
+        return acc;
+      }, {}),
     };
   }
 }
