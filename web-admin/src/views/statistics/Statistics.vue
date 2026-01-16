@@ -167,14 +167,13 @@
           <el-card>
             <template #header>
               <div class="card-header">
-                <span>治疗师工作量</span>
+                <span>工作人员工作量</span>
               </div>
             </template>
 
             <el-table :data="therapistStats" stripe>
-              <el-table-column prop="therapistName" label="治疗师" />
-              <el-table-column prop="count" label="治疗次数" width="120" />
-              <el-table-column prop="duration" label="时长(小时)" width="120" />
+              <el-table-column prop="therapistName" label="工作人员" />
+              <el-table-column prop="count" label="治疗次数" width="120" sortable />
             </el-table>
           </el-card>
         </el-col>
@@ -359,18 +358,12 @@ async function loadStatistics() {
     records.forEach((record: any) => {
       const therapistName = record.therapist?.name || '未知'
       if (!therapistMap.has(therapistName)) {
-        therapistMap.set(therapistName, { count: 0, duration: 0, therapistName })
+        therapistMap.set(therapistName, { count: 0, therapistName })
       }
-      const therapist = therapistMap.get(therapistName)
-      therapist.count++
-      therapist.duration += record.durationMinutes || 0
+      therapistMap.get(therapistName).count++
     })
 
     therapistStats.value = Array.from(therapistMap.values())
-      .map((item: any) => ({
-        ...item,
-        duration: (item.duration / 60).toFixed(1)
-      }))
       .sort((a, b) => b.count - a.count)
 
     // Calculate patient statistics
