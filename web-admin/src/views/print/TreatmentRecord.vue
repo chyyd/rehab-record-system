@@ -77,8 +77,8 @@
         </div>
       </div>
 
-      <!-- 评估记录 - 只在有评估数据时显示 -->
-      <div class="assessment-section" v-if="admissionAssessment || dischargeAssessment">
+      <!-- 评估记录 - 只在有评估数据且患者需要评估时显示 -->
+      <div class="assessment-section" v-if="(admissionAssessment || dischargeAssessment) && patientInfo.needsAssessment !== false">
         <div class="section-title">康复评估记录（入院/出院）</div>
         <div class="assessment-grid">
           <!-- 入院评估 -->

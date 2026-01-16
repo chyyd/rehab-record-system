@@ -106,13 +106,22 @@
               v-for="patient in dischargedPatients"
               :key="patient.id"
               class="discharged-item"
-              @click="goToPatient(patient)"
             >
-              <div class="patient-name">{{ patient.name }}</div>
-              <div class="patient-meta">
-                <span class="meta-item">{{ patient.medicalRecordNo }}</span>
-                <span class="meta-date">{{ formatDate(patient.dischargeDate) }}</span>
+              <div class="patient-info" @click="goToPatient(patient)">
+                <div class="patient-name">{{ patient.name }}</div>
+                <div class="patient-meta">
+                  <span class="meta-item">{{ patient.medicalRecordNo }}</span>
+                  <span class="meta-date">{{ formatDate(patient.dischargeDate) }}</span>
+                </div>
               </div>
+              <el-button
+                type="primary"
+                size="small"
+                @click.stop="handlePrint(patient)"
+                class="print-btn"
+              >
+                打印治疗单
+              </el-button>
             </div>
           </div>
         </el-card>
@@ -253,6 +262,11 @@ async function loadPendingAssessments() {
 
     // 检查每个患者缺少的评估
     for (const patient of patients) {
+      // 跳过不需要评估的患者
+      if (patient.needsAssessment === false) {
+        continue
+      }
+
       const assessments = patientAssessments.value[patient.id]
 
       // 在院患者缺少入院评估
@@ -304,6 +318,12 @@ function formatDate(date: string): string {
 
 function calculateDays(admissionDate: string, dischargeDate: string): number {
   return dayjs(dischargeDate).diff(dayjs(admissionDate), 'day') + 1
+}
+
+function handlePrint(patient: any) {
+  // 打开打印页面
+  const printUrl = `/print/treatment-record?patientId=${patient.id}`
+  window.open(printUrl, '_blank')
 }
 
 function goToPatient(item: any) {
@@ -468,24 +488,28 @@ function navigateTo(path: string) {
 
   .discharged-patients {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 12px;
 
     .discharged-item {
       display: flex;
-      flex-direction: column;
-      padding: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
       background: #f9fafb;
       border-radius: 8px;
       border-left: 3px solid #409eff;
-      cursor: pointer;
       transition: all 0.2s;
 
       &:hover {
         background: #f3f4f6;
         border-left-color: #0284c7;
-        transform: translateY(-2px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .patient-info {
+        flex: 1;
+        cursor: pointer;
       }
 
       .patient-name {
@@ -498,8 +522,7 @@ function navigateTo(path: string) {
       .patient-meta {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 8px;
+        gap: 12px;
 
         .meta-item {
           font-size: 12px;
@@ -508,9 +531,13 @@ function navigateTo(path: string) {
 
         .meta-date {
           font-size: 12px;
-          color: #409eff;
-          font-weight: 500;
+          color: #94a3b8;
         }
+      }
+
+      .print-btn {
+        flex-shrink: 0;
+        margin-left: 12px;
       }
     }
   }

@@ -71,6 +71,7 @@
                 记录
               </el-button>
               <el-button
+                v-if="row.needsAssessment !== false"
                 :type="hasAssessment(row.id, 'admission') ? 'success' : 'info'"
                 size="small"
                 @click="handleAdmissionAssessment(row)"
@@ -78,6 +79,7 @@
                 入院评估
               </el-button>
               <el-button
+                v-if="row.needsAssessment !== false"
                 :type="hasAssessment(row.id, 'discharge') ? 'success' : 'warning'"
                 size="small"
                 @click="handleDischargeAssessment(row)"
@@ -195,6 +197,17 @@
             disabled
           />
         </el-form-item>
+
+        <el-form-item label="是否需要评估">
+          <el-switch
+            v-model="formData.needsAssessment"
+            active-text="需要"
+            inactive-text="不需要"
+          />
+          <span style="margin-left: 10px; color: #909399; font-size: 12px;">
+            关闭后将隐藏评估按钮和打印单中的评估部分
+          </span>
+        </el-form-item>
       </el-form>
 
       <template #footer>
@@ -309,7 +322,8 @@ const formData = reactive<any>({
   insuranceType: '',
   doctor: '',
   diagnosis: '',
-  admissionDate: ''
+  admissionDate: '',
+  needsAssessment: true  // 默认需要评估
 })
 
 const rules: FormRules = {
@@ -451,7 +465,8 @@ function handleAdd() {
     insuranceType: '',
     doctor: '',
     diagnosis: '',
-    admissionDate: ''
+    admissionDate: '',
+    needsAssessment: true  // 默认需要评估
   })
   dialogVisible.value = true
 }
