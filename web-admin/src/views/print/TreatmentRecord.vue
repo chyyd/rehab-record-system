@@ -194,7 +194,7 @@
           </div>
           <div class="signature-item">
             <div class="signature-line"></div>
-            <div class="signature-name">治疗师</div>
+            <div class="signature-name">{{ therapistSignatureText }}</div>
             <div class="signature-role">康复治疗师</div>
             <div class="signature-date">{{ formatDateOnly(patientInfo.dischargeDate) }}</div>
           </div>
@@ -251,6 +251,22 @@ const statistics = computed(() => {
     stats[projectName] = (stats[projectName] || 0) + 1
   })
   return stats
+})
+
+// 所有治疗师列表（去重）
+const allTherapists = computed(() => {
+  const therapistMap = new Map<number, any>()
+  treatmentRecords.value.forEach((record: any) => {
+    if (record.therapist && !therapistMap.has(record.therapist.id)) {
+      therapistMap.set(record.therapist.id, record.therapist)
+    }
+  })
+  return Array.from(therapistMap.values())
+})
+
+// 治疗师签名显示文本
+const therapistSignatureText = computed(() => {
+  return allTherapists.value.map(t => t.name).join(' / ')
 })
 
 onMounted(async () => {
@@ -713,7 +729,10 @@ function handleClose() {
 .signature-name {
   font-weight: bold;
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.3;
+  word-wrap: break-word;
+  hyphens: auto;
 }
 
 .signature-role {
