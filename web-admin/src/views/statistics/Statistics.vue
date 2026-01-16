@@ -134,7 +134,7 @@
               </div>
               <div class="stat-content">
                 <div class="stat-value">{{ statistics.activeTherapists }}</div>
-                <div class="stat-label">活跃治疗师</div>
+                <div class="stat-label">活跃工作人员</div>
               </div>
             </div>
           </el-card>
