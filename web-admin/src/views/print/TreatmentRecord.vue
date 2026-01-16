@@ -400,14 +400,14 @@ function handleClose() {
 /* 打印按钮区域 */
 .no-print {
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #304156;
 }
 
 .action-bar {
   max-width: 210mm;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 16px;
 }
@@ -415,6 +415,7 @@ function handleClose() {
 .action-buttons {
   display: flex;
   gap: 12px;
+  margin-left: auto;
 }
 
 .action-button {
@@ -467,36 +468,7 @@ function handleClose() {
 }
 
 .status-messages {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.status-message {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.status-message.info {
-  background: white;
-  color: #3b82f6;
-}
-
-.status-message.error {
-  background: white;
-  color: #ef4444;
-}
-
-.status-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+  display: none;
 }
 
 /* 打印容器 - 参考模板样式 */
