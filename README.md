@@ -335,6 +335,7 @@ const watermarkText = `${medicalRecordNo} ${timestamp} ${projectName}`
 | 项目 | GET /api/projects | 获取治疗项目 |
 | 记录 | GET /api/records | 获取治疗记录 |
 | 记录 | POST /api/records | 创建治疗记录 |
+| 记录 | POST /api/records/validate-time-conflict | 验证患者治疗时间冲突 |
 | 照片 | POST /api/photos/upload | 上传签名 |
 | 评估 | GET /api/assessments | 获取评估列表 |
 

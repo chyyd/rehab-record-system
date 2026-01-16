@@ -365,4 +365,82 @@ export class RecordsService {
       }, {}),
     };
   }
+
+  /**
+   * 验证患者治疗时间冲突
+   * @param data 验证数据
+   * @returns 验证结果
+   */
+  async validateTimeConflict(data: {
+    patientId: number;
+    startTime: string;
+    recordId?: number; // 用于更新记录时排除当前记录
+  }) {
+    const { patientId, startTime, recordId } = data;
+
+    // 查询该患者最近的治疗记录（最近10条即可，不需要全部）
+    const records = await this.prisma.treatmentRecord.findMany({
+      where: {
+        patientId,
+        // 如果是更新记录，排除当前记录本身
+        ...(recordId ? { id: { not: recordId } } : {}),
+      },
+      select: {
+        id: true,
+        startTime: true,
+        endTime: true,
+        project: {
+          select: {
+            name: true,
+          },
+        },
+        therapist: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        startTime: 'desc',
+      },
+      take: 10, // 只检查最近10条记录，提升性能
+    });
+
+    const newStartTime = new Date(startTime);
+
+    // 检查时间冲突
+    // 规则：允许无缝衔接（新开始时间 >= 旧结束时间），拒绝时间重叠
+    for (const record of records) {
+      const recordEndTime = new Date(record.endTime);
+
+      // 如果新记录的开始时间在旧记录的时间范围内（开始时间 < 结束时间），则冲突
+      // 允许无缝衔接：startTime >= endTime 是允许的
+      if (newStartTime < recordEndTime && newStartTime >= record.startTime) {
+        return {
+          hasConflict: true,
+          conflictingRecord: {
+            projectName: record.project.name,
+            therapistName: record.therapist.name,
+            startTime: record.startTime.toISOString(),
+            endTime: record.endTime.toISOString(),
+          },
+          message: `该患者在 ${this.formatDateTime(record.startTime)} - ${this.formatDateTime(record.endTime)} 已有 ${record.project.name} 治疗（${record.therapist.name}），请选择其他时间`,
+        };
+      }
+    }
+
+    return { hasConflict: false };
+  }
+
+  /**
+   * 格式化日期时间为可读字符串
+   */
+  private formatDateTime(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
 }

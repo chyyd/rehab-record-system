@@ -147,8 +147,61 @@ async function startTreatment() {
     return
   }
 
-  // 显示签名弹窗
-  showSignature.value = true
+  // 显示加载提示
+  uni.showLoading({
+    title: '验证中...'
+  })
+
+  try {
+    // 验证时间冲突（使用当前时间作为开始时间）
+    const startTime = new Date()
+
+    const response = await request({
+      url: '/records/validate-time-conflict',
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      data: {
+        patientId: patientId.value,
+        startTime: startTime.toISOString()
+      }
+    })
+
+    uni.hideLoading()
+
+    // 检查是否有冲突
+    if (response.data?.hasConflict) {
+      // 有冲突，显示警告弹窗
+      uni.showModal({
+        title: '时间冲突警告',
+        content: response.data.message || '该患者当前时间段已有治疗记录，请选择其他时间',
+        showCancel: false,
+        confirmText: '我知道了',
+        confirmColor: '#ef4444'
+      })
+      return
+    }
+
+    // 无冲突，显示签名弹窗
+    showSignature.value = true
+  } catch (error: any) {
+    console.error('验证时间冲突失败:', error)
+    uni.hideLoading()
+
+    // 验证失败也允许继续（避免网络问题阻塞治疗）
+    uni.showModal({
+      title: '验证失败',
+      content: '无法验证时间冲突，是否继续治疗记录？',
+      confirmText: '继续',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          showSignature.value = true
+        }
+      }
+    })
+  }
 }
 
 // 签名确认

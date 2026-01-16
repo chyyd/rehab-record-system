@@ -69,4 +69,10 @@ export class RecordsController {
   remove(@Param('id') id: string) {
     return this.recordsService.remove(+id);
   }
+
+  @Post('validate-time-conflict')
+  @ApiOperation({ summary: '验证患者治疗时间冲突' })
+  validateTimeConflict(@Body() validateDto: any) {
+    return this.recordsService.validateTimeConflict(validateDto);
+  }
 }
