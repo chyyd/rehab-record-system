@@ -500,21 +500,21 @@ function handleReset() {
         }
       }
 
-      // 渐变色主题
+      // 渐变色主题（与仪表盘统一）
       &.stat-card-1 {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
       }
 
       &.stat-card-2 {
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       }
 
       &.stat-card-3 {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
       }
 
       &.stat-card-4 {
-        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       }
     }
   }
