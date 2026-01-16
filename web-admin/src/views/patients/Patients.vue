@@ -61,44 +61,46 @@
             {{ row.dischargeDate ? formatDate(row.dischargeDate) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="380" fixed="right">
+        <el-table-column label="操作" width="480" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="handleEdit(row)">
-              编辑
-            </el-button>
-            <el-button type="success" size="small" @click="handleViewRecords(row)">
-              记录
-            </el-button>
-            <el-button
-              :type="hasAssessment(row.id, 'admission') ? 'success' : 'info'"
-              size="small"
-              @click="handleAdmissionAssessment(row)"
-            >
-              入院评估
-            </el-button>
-            <el-button
-              :type="hasAssessment(row.id, 'discharge') ? 'success' : 'warning'"
-              size="small"
-              @click="handleDischargeAssessment(row)"
-            >
-              出院评估
-            </el-button>
-            <el-button
-              v-if="row.dischargeDate"
-              type="primary"
-              size="small"
-              @click="handlePrint(row)"
-            >
-              打印治疗单
-            </el-button>
-            <el-button
-              v-if="!row.dischargeDate"
-              type="danger"
-              size="small"
-              @click="handleDischarge(row)"
-            >
-              出院
-            </el-button>
+            <div class="action-buttons">
+              <el-button type="primary" size="small" @click="handleEdit(row)">
+                编辑
+              </el-button>
+              <el-button type="success" size="small" @click="handleViewRecords(row)">
+                记录
+              </el-button>
+              <el-button
+                :type="hasAssessment(row.id, 'admission') ? 'success' : 'info'"
+                size="small"
+                @click="handleAdmissionAssessment(row)"
+              >
+                入院评估
+              </el-button>
+              <el-button
+                :type="hasAssessment(row.id, 'discharge') ? 'success' : 'warning'"
+                size="small"
+                @click="handleDischargeAssessment(row)"
+              >
+                出院评估
+              </el-button>
+              <el-button
+                v-if="row.dischargeDate"
+                type="primary"
+                size="small"
+                @click="handlePrint(row)"
+              >
+                打印治疗单
+              </el-button>
+              <el-button
+                v-if="!row.dischargeDate"
+                type="danger"
+                size="small"
+                @click="handleDischarge(row)"
+              >
+                出院
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -620,6 +622,23 @@ function formatDate(date: string): string {
 
   .search-form {
     margin-bottom: 20px;
+  }
+
+  .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+
+    .el-button {
+      margin: 0 !important;
+      padding: 5px 12px;
+      font-size: 13px;
+    }
+
+    .el-button--small {
+      height: 28px;
+    }
   }
 }
 </style>
