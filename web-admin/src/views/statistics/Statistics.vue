@@ -143,7 +143,7 @@
 
       <!-- Charts -->
       <el-row :gutter="20" style="margin-top: 20px;">
-        <el-col :span="12">
+        <el-col :span="8">
           <el-card>
             <template #header>
               <div class="card-header">
@@ -152,9 +152,9 @@
             </template>
 
             <el-table :data="projectStats" stripe>
-              <el-table-column prop="projectName" label="治疗项目" />
-              <el-table-column prop="count" label="治疗次数" width="120" />
-              <el-table-column prop="percentage" label="占比" width="120">
+              <el-table-column prop="projectName" label="治疗项目" show-overflow-tooltip />
+              <el-table-column prop="count" label="次数" width="80" />
+              <el-table-column prop="percentage" label="占比" width="80">
                 <template #default="{ row }">
                   {{ row.percentage }}%
                 </template>
@@ -163,7 +163,7 @@
           </el-card>
         </el-col>
 
-        <el-col :span="12">
+        <el-col :span="8">
           <el-card>
             <template #header>
               <div class="card-header">
@@ -172,8 +172,25 @@
             </template>
 
             <el-table :data="therapistStats" stripe>
-              <el-table-column prop="therapistName" label="工作人员" />
-              <el-table-column prop="count" label="治疗次数" width="120" sortable />
+              <el-table-column prop="therapistName" label="工作人员" show-overflow-tooltip />
+              <el-table-column prop="count" label="次数" width="80" sortable />
+            </el-table>
+          </el-card>
+        </el-col>
+
+        <el-col :span="8">
+          <el-card>
+            <template #header>
+              <div class="card-header">
+                <span>每日治疗趋势</span>
+              </div>
+            </template>
+
+            <el-table :data="dailyStats" stripe>
+              <el-table-column prop="date" label="日期" width="110" />
+              <el-table-column prop="recordCount" label="人次" width="70" sortable />
+              <el-table-column prop="patientCount" label="患者数" width="70" sortable />
+              <el-table-column prop="topProjects" label="主要项目" show-overflow-tooltip />
             </el-table>
           </el-card>
         </el-col>
@@ -235,6 +252,7 @@ const statistics = reactive({
 const projectStats = ref<any[]>([])
 const therapistStats = ref<any[]>([])
 const patientStats = ref<any[]>([])
+const dailyStats = ref<any[]>([])
 
 onMounted(async () => {
   // 默认选择本月
@@ -365,6 +383,48 @@ async function loadStatistics() {
 
     therapistStats.value = Array.from(therapistMap.values())
       .sort((a, b) => b.count - a.count)
+
+    // Calculate daily statistics
+    const dailyMap = new Map()
+    records.forEach((record: any) => {
+      const dateKey = dayjs(record.treatmentDate).format('YYYY-MM-DD')
+      if (!dailyMap.has(dateKey)) {
+        dailyMap.set(dateKey, {
+          date: dateKey,
+          recordCount: 0,
+          patientCount: new Set(),
+          projectCounts: new Map()
+        })
+      }
+      const daily = dailyMap.get(dateKey)
+      daily.recordCount++
+      daily.patientCount.add(record.patientId)
+
+      // 统计每个项目的次数
+      const projectName = record.project?.name || '未知'
+      daily.projectCounts.set(
+        projectName,
+        (daily.projectCounts.get(projectName) || 0) + 1
+      )
+    })
+
+    dailyStats.value = Array.from(dailyMap.values())
+      .map((item: any) => {
+        // 找出前3个项目
+        const sortedProjects = Array.from(item.projectCounts.entries())
+          .sort((a: any, b: any) => b[1] - a[1])
+          .slice(0, 3)
+          .map((item: any) => `${item[0]}×${item[1]}`)
+          .join(', ')
+
+        return {
+          date: item.date,
+          recordCount: item.recordCount,
+          patientCount: item.patientCount.size,
+          topProjects: sortedProjects || '-'
+        }
+      })
+      .sort((a, b) => b.date.localeCompare(a.date)) // 按日期降序
 
     // Calculate patient statistics
     const patientMap = new Map()
