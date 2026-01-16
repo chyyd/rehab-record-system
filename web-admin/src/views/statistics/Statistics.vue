@@ -143,7 +143,7 @@
 
       <!-- Charts -->
       <el-row :gutter="20" style="margin-top: 20px;">
-        <el-col :span="8">
+        <el-col :span="6">
           <el-card>
             <template #header>
               <div class="card-header">
@@ -153,8 +153,8 @@
 
             <el-table :data="projectStats" stripe>
               <el-table-column prop="projectName" label="治疗项目" show-overflow-tooltip />
-              <el-table-column prop="count" label="次数" width="80" />
-              <el-table-column prop="percentage" label="占比" width="80">
+              <el-table-column prop="count" label="次数" width="70" />
+              <el-table-column prop="percentage" label="占比" width="70">
                 <template #default="{ row }">
                   {{ row.percentage }}%
                 </template>
@@ -163,7 +163,7 @@
           </el-card>
         </el-col>
 
-        <el-col :span="8">
+        <el-col :span="6">
           <el-card>
             <template #header>
               <div class="card-header">
@@ -173,12 +173,12 @@
 
             <el-table :data="therapistStats" stripe>
               <el-table-column prop="therapistName" label="工作人员" show-overflow-tooltip />
-              <el-table-column prop="count" label="次数" width="80" sortable />
+              <el-table-column prop="count" label="次数" width="70" sortable />
             </el-table>
           </el-card>
         </el-col>
 
-        <el-col :span="8">
+        <el-col :span="12">
           <el-card>
             <template #header>
               <div class="card-header">
