@@ -442,12 +442,13 @@ function handleClose() {
 }
 
 .action-button.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: white;
+  color: #4b5563;
 }
 
 .action-button.primary:hover {
-  background: linear-gradient(135deg, #5568d3 0%, #63408a 100%);
+  background: #f9fafb;
+  color: #1f2937;
 }
 
 .action-button.secondary {
