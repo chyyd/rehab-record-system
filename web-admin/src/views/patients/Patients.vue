@@ -84,6 +84,14 @@
               出院评估
             </el-button>
             <el-button
+              v-if="row.dischargeDate"
+              type="primary"
+              size="small"
+              @click="handlePrint(row)"
+            >
+              打印治疗单
+            </el-button>
+            <el-button
               v-if="!row.dischargeDate"
               type="danger"
               size="small"
@@ -495,6 +503,17 @@ async function handleDischargeAssessment(row: any) {
   }
 
   assessmentDialogVisible.value = true
+}
+
+// 打印治疗单
+async function handlePrint(row: any) {
+  try {
+    // 打开新窗口，传递患者ID
+    const printUrl = `/print/treatment-record?patientId=${row.id}`
+    window.open(printUrl, '_blank')
+  } catch (error: any) {
+    ElMessage.error(error.message || '打开打印页面失败')
+  }
 }
 
 // 评估保存成功

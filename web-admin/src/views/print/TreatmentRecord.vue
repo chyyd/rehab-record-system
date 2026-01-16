@@ -1,0 +1,753 @@
+<template>
+  <div class="print-container">
+    <!-- 打印按钮 -->
+    <div class="no-print">
+      <el-button type="primary" @click="handlePrint">🖨️ 打印</el-button>
+      <el-button @click="handleClose">关闭</el-button>
+      <el-alert
+        v-if="loading"
+        title="正在加载治疗记录数据..."
+        type="info"
+        :closable="false"
+        style="margin-top: 20px;"
+      />
+      <el-alert
+        v-if="error"
+        :title="error"
+        type="error"
+        :closable="false"
+        style="margin-top: 20px;"
+      />
+    </div>
+
+    <!-- 打印内容 -->
+    <div v-if="!loading && !error" class="print-content" id="print-area">
+      <!-- 合规水印 -->
+      <div class="compliance-stamp">虎林中医</div>
+
+      <!-- 页眉 -->
+      <div class="header">
+        <div class="hospital-name">虎林市中医医院</div>
+        <div class="department">康复医学科</div>
+        <div class="document-title">康复治疗全程记录单</div>
+        <div class="header-info">
+          <div><strong>病历号：</strong> {{ patientInfo.medicalRecordNo }}</div>
+          <div><strong>打印日期：</strong> {{ printDate }}</div>
+        </div>
+      </div>
+
+      <!-- 患者基本信息 -->
+      <div class="patient-card">
+        <div class="patient-title">患者基本信息</div>
+        <table class="patient-info-table">
+          <tr>
+            <td><span class="info-label">姓名：</span><span class="info-value">{{ patientInfo.name }}</span></td>
+            <td><span class="info-label">性别：</span><span class="info-value">{{ patientInfo.gender }}</span></td>
+            <td><span class="info-label">年龄：</span><span class="info-value">{{ patientInfo.age }}岁</span></td>
+          </tr>
+          <tr>
+            <td><span class="info-label">医保类型：</span><span class="info-value">{{ patientInfo.insuranceType }}</span></td>
+            <td><span class="info-label">入院日期：</span><span class="info-value">{{ formatDate(patientInfo.admissionDate) }}</span></td>
+            <td><span class="info-label">出院日期：</span><span class="info-value">{{ formatDate(patientInfo.dischargeDate) }}</span></td>
+          </tr>
+          <tr>
+            <td><span class="info-label">住院天数：</span><span class="info-value">{{ hospitalDays }}天</span></td>
+            <td><span class="info-label">主管医师：</span><span class="info-value">{{ patientInfo.doctor }}</span></td>
+            <td></td>
+          </tr>
+        </table>
+        <!-- 主要诊断单独成行 -->
+        <div class="diagnosis-row">
+          <span class="diagnosis-label">主要诊断：</span>
+          <span class="diagnosis-value">{{ patientInfo.diagnosis }}</span>
+        </div>
+      </div>
+
+      <!-- 评估记录 -->
+      <div class="assessment-section">
+        <div class="section-title">康复评估记录（入院/出院）</div>
+        <div class="assessment-grid">
+          <!-- 入院评估 -->
+          <div class="assessment-card" v-if="admissionAssessment">
+            <div class="assessment-header">
+              <div class="assessment-type">入院评估</div>
+              <div class="assessment-date">{{ formatDateTime(admissionAssessment.assessmentDate) }}</div>
+            </div>
+            <div class="assessment-content">
+              <p><strong>评估医师：</strong>{{ admissionAssessment.therapistName }}</p>
+              <p><strong>评估地点：</strong>康复评定室</p>
+              <p><strong>功能状态：</strong></p>
+              <div class="functional-score" v-if="admissionAssessment.barthelScore">Barthel指数：{{ admissionAssessment.barthelScore }}分</div>
+              <div class="functional-score" v-if="admissionAssessment.brunnstromStage">Brunnstrom分期：{{ admissionAssessment.brunnstromStage }}</div>
+              <div class="functional-score" v-if="admissionAssessment.balanceFunction">平衡功能：{{ admissionAssessment.balanceFunction }}</div>
+              <div class="functional-score" v-if="admissionAssessment.muscleStrength">肌力：{{ admissionAssessment.muscleStrength }}</div>
+              <div class="functional-score" v-if="admissionAssessment.mmseScore">认知功能：MMSE评分{{ admissionAssessment.mmseScore }}分</div>
+              <div class="functional-score" v-if="admissionAssessment.swallowingFunction">吞咽功能：洼田饮水试验{{ admissionAssessment.swallowingFunction }}级</div>
+              <div class="functional-score" v-if="admissionAssessment.aphasiaScore">语言功能：失语症评定{{ admissionAssessment.aphasiaScore }}分</div>
+              <p v-if="admissionAssessment.rehabGoals"><strong>康复目标：</strong>{{ admissionAssessment.rehabGoals }}</p>
+            </div>
+          </div>
+          <div class="assessment-card" v-else>
+            <p style="text-align: center; color: #999;">暂无入院评估记录</p>
+          </div>
+
+          <!-- 出院评估 -->
+          <div class="assessment-card" v-if="dischargeAssessment">
+            <div class="assessment-header">
+              <div class="assessment-type">出院评估</div>
+              <div class="assessment-date">{{ formatDateTime(dischargeAssessment.assessmentDate) }}</div>
+            </div>
+            <div class="assessment-content">
+              <p><strong>评估医师：</strong>{{ dischargeAssessment.therapistName }}</p>
+              <p><strong>评估地点：</strong>康复评定室</p>
+              <p><strong>功能状态：</strong></p>
+              <div class="functional-score" v-if="dischargeAssessment.barthelScore">Barthel指数：{{ dischargeAssessment.barthelScore }}分</div>
+              <div class="functional-score" v-if="dischargeAssessment.brunnstromStage">Brunnstrom分期：{{ dischargeAssessment.brunnstromStage }}</div>
+              <div class="functional-score" v-if="dischargeAssessment.balanceFunction">平衡功能：{{ dischargeAssessment.balanceFunction }}</div>
+              <div class="functional-score" v-if="dischargeAssessment.muscleStrength">肌力：{{ dischargeAssessment.muscleStrength }}</div>
+              <div class="functional-score" v-if="dischargeAssessment.mmseScore">认知功能：MMSE评分{{ dischargeAssessment.mmseScore }}分</div>
+              <div class="functional-score" v-if="dischargeAssessment.swallowingFunction">吞咽功能：洼田饮水试验{{ dischargeAssessment.swallowingFunction }}级</div>
+              <div class="functional-score" v-if="dischargeAssessment.aphasiaScore">语言功能：失语症评定{{ dischargeAssessment.aphasiaScore }}分</div>
+              <p v-if="dischargeAssessment.rehabGoals"><strong>康复效果：</strong>{{ dischargeAssessment.rehabGoals }}</p>
+              <p v-if="dischargeAssessment.homeGuidance"><strong>家庭指导：</strong>{{ dischargeAssessment.homeGuidance }}</p>
+            </div>
+          </div>
+          <div class="assessment-card" v-else>
+            <p style="text-align: center; color: #999;">暂无出院评估记录</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 治疗记录表格 -->
+      <div class="treatment-section">
+        <div class="section-title-treatment">治疗记录明细</div>
+        <div class="treatment-table-container">
+          <table class="treatment-table">
+            <thead>
+              <tr>
+                <th width="10%">日期</th>
+                <th width="18%">治疗项目</th>
+                <th width="12%">治疗师</th>
+                <th width="18%">治疗时间</th>
+                <th width="10%">治疗时长</th>
+                <th width="12%">患者签名</th>
+                <th width="20%">备注</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(record, index) in treatmentRecords" :key="record.id">
+                <td>{{ formatDateOnly(record.treatmentDate) }}</td>
+                <td><span class="treatment-type">{{ record.project?.name }}</span></td>
+                <td>{{ record.therapist?.name }}</td>
+                <td class="treatment-time-cell">
+                  <span class="treatment-date">{{ formatDateOnly(record.treatmentDate) }}</span>
+                  <span class="time-range">
+                    <span class="start-time">{{ formatTime(record.startTime) }}</span>-<span class="end-time">{{ formatTime(record.endTime) }}</span>
+                  </span>
+                </td>
+                <td>
+                  <span class="time-badge">{{ record.durationMinutes }}分钟</span>
+                  <span v-if="record.extraSeconds" class="time-badge">+{{ record.extraSeconds }}秒</span>
+                </td>
+                <td>
+                  <img
+                    v-if="record.photoFileName"
+                    :src="getSignatureUrl(record.photoFileName)"
+                    class="signature-img"
+                    alt="签名"
+                  />
+                  <span v-else class="no-signature">无签名</span>
+                </td>
+                <td>{{ record.outcome || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 治疗统计 -->
+      <div class="statistics-section">
+        <div class="statistics-title">治疗统计汇总</div>
+        <table class="statistics-table">
+          <thead>
+            <tr>
+              <th v-for="(stat, key) in statistics" :key="key" width="20%">{{ key }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td v-for="(stat, key) in statistics" :key="key">{{ stat }}次</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 签名区域 -->
+      <div class="signature-section">
+        <div class="signature-title">责任签名确认</div>
+        <div class="signature-grid">
+          <div class="signature-item">
+            <div class="signature-line"></div>
+            <div class="signature-name">{{ patientInfo.name }}</div>
+            <div class="signature-role">患者/家属</div>
+            <div class="signature-date">{{ formatDateOnly(patientInfo.dischargeDate) }}</div>
+          </div>
+          <div class="signature-item">
+            <div class="signature-line"></div>
+            <div class="signature-name">{{ patientInfo.doctor }}</div>
+            <div class="signature-role">住院医师</div>
+            <div class="signature-date">{{ formatDateOnly(patientInfo.dischargeDate) }}</div>
+          </div>
+          <div class="signature-item">
+            <div class="signature-line"></div>
+            <div class="signature-name">治疗师</div>
+            <div class="signature-role">康复治疗师</div>
+            <div class="signature-date">{{ formatDateOnly(patientInfo.dischargeDate) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 页脚 -->
+      <div class="footer">
+        <p>虎林市中医医院康复医学科制 | 地址：黑龙江省虎林市解放西街58号</p>
+        <p>电话：0467-5822120 | 邮编：158400</p>
+        <p>注：每次治疗均有患者签名确认，所有记录及签名图片保存5年备查。</p>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import request from '@/utils/request'
+import dayjs from 'dayjs'
+
+const route = useRoute()
+const patientId = ref<number>(parseInt(route.query.patientId as string))
+
+const loading = ref(true)
+const error = ref('')
+const patientInfo = ref<any>({})
+const treatmentRecords = ref<any[]>([])
+const admissionAssessment = ref<any>(null)
+const dischargeAssessment = ref<any>(null)
+
+// 打印日期
+const printDate = computed(() => {
+  return dayjs().format('YYYY年MM月DD日')
+})
+
+// 住院天数
+const hospitalDays = computed(() => {
+  if (!patientInfo.value.admissionDate || !patientInfo.value.dischargeDate) {
+    return 0
+  }
+  const admission = dayjs(patientInfo.value.admissionDate)
+  const discharge = dayjs(patientInfo.value.dischargeDate)
+  return discharge.diff(admission, 'day') + 1
+})
+
+// 治疗统计
+const statistics = computed(() => {
+  const stats: any = {}
+  treatmentRecords.value.forEach((record: any) => {
+    const projectName = record.project?.name || '其他'
+    stats[projectName] = (stats[projectName] || 0) + 1
+  })
+  return stats
+})
+
+onMounted(async () => {
+  await loadData()
+})
+
+async function loadData() {
+  loading.value = true
+  error.value = ''
+
+  try {
+    // 获取患者信息
+    patientInfo.value = await request.get(`/patients/${patientId.value}`)
+
+    // 获取治疗记录
+    const records = await request.get(`/records?patientId=${patientId.value}`)
+
+    // 扩展记录信息
+    treatmentRecords.value = await Promise.all(
+      records.map(async (record: any) => {
+        const project = await request.get(`/projects/${record.projectId}`)
+        const therapist = await request.get(`/users/${record.therapistId}`)
+        return {
+          ...record,
+          project,
+          therapist
+        }
+      })
+    )
+
+    // 排序：按治疗时间排序
+    treatmentRecords.value.sort((a: any, b: any) => {
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    })
+
+    // 获取入院评估
+    try {
+      admissionAssessment.value = await request.get(`/assessments/patient/${patientId.value}/admission`)
+    } catch (e) {
+      // 没有入院评估，忽略
+    }
+
+    // 获取出院评估
+    try {
+      dischargeAssessment.value = await request.get(`/assessments/patient/${patientId.value}/discharge`)
+    } catch (e) {
+      // 没有出院评估，忽略
+    }
+
+  } catch (err: any) {
+    console.error('加载数据失败:', err)
+    error.value = err.message || '加载数据失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+function formatDate(date: string): string {
+  return dayjs(date).format('YYYY年MM月DD日')
+}
+
+function formatDateTime(date: string): string {
+  return dayjs(date).format('YYYY年MM月DD日 HH:mm')
+}
+
+function formatDateOnly(date: string): string {
+  return dayjs(date).format('YYYY-MM-DD')
+}
+
+function formatTime(date: string): string {
+  return dayjs(date).format('HH:mm')
+}
+
+function getSignatureUrl(filename: string): string {
+  return `/api/uploads/photos/${filename}`
+}
+
+function handlePrint() {
+  window.print()
+}
+
+function handleClose() {
+  window.close()
+}
+</script>
+
+<style lang="scss" scoped>
+/* 打印按钮区域 */
+.no-print {
+  padding: 20px;
+  text-align: right;
+}
+
+/* 打印容器 - 参考模板样式 */
+.print-container {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.print-content {
+  max-width: 210mm;
+  margin: 0 auto;
+  background: white;
+  padding: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* A4纸打印优化 */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-container {
+    background: white !important;
+    padding: 0 !important;
+  }
+  .print-content {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 12px;
+    box-shadow: none;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    color: black !important;
+    background: white !important;
+  }
+  .compliance-stamp {
+    opacity: 0.1 !important;
+  }
+}
+
+/* 全局样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "SimSun", "宋体", serif;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* 页眉 */
+.header {
+  text-align: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid black;
+  padding-bottom: 8px;
+}
+
+.hospital-name {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 3px 0;
+}
+
+.department {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 3px 0;
+}
+
+.document-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 6px 0;
+  text-decoration: underline;
+}
+
+.header-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* 患者信息 */
+.patient-card {
+  padding: 8px 0;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.patient-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  text-decoration: underline;
+}
+
+.patient-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.patient-info-table td {
+  padding: 2px 4px;
+  vertical-align: top;
+  border-bottom: 1px dotted #ccc;
+  white-space: nowrap;
+}
+
+.info-label {
+  display: inline-block;
+  min-width: 60px;
+  font-weight: bold;
+  text-align: right;
+  padding-right: 5px;
+  white-space: nowrap;
+}
+
+.info-value {
+  display: inline-block;
+  font-weight: normal;
+  min-width: 110px;
+  white-space: nowrap;
+}
+
+.diagnosis-row {
+  width: 100%;
+}
+
+.diagnosis-label {
+  display: inline-block;
+  min-width: 60px;
+  font-weight: bold;
+  text-align: right;
+  padding-right: 5px;
+  white-space: nowrap;
+}
+
+.diagnosis-value {
+  display: inline-block;
+  font-weight: normal;
+  width: calc(100% - 65px);
+  white-space: nowrap;
+}
+
+/* 评估记录 */
+.assessment-section {
+  padding: 10px 0;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-decoration: underline;
+}
+
+.assessment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  font-size: 12px;
+}
+
+.assessment-card {
+  border: 1px solid #000;
+  padding: 8px;
+}
+
+.assessment-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.assessment-type {
+  font-size: 13px;
+}
+
+.assessment-date {
+  font-size: 12px;
+}
+
+.assessment-content {
+  margin-top: 6px;
+}
+
+.functional-score {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  margin: 2px 0;
+  font-size: 12px;
+}
+
+/* 治疗记录表格 */
+.treatment-section {
+  padding: 10px 0;
+  margin-bottom: 12px;
+}
+
+.section-title-treatment {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-decoration: underline;
+}
+
+.treatment-table-container {
+  width: 100%;
+  overflow: hidden;
+}
+
+.treatment-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11px;
+}
+
+.treatment-table th {
+  font-weight: bold;
+  padding: 4px 2px;
+  text-align: center;
+  border: 1px solid #000;
+  background: #f0f0f0;
+}
+
+.treatment-table td {
+  padding: 4px 2px;
+  border: 1px solid #000;
+  vertical-align: middle;
+  text-align: center;
+  word-wrap: break-word;
+}
+
+.treatment-table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.treatment-type {
+  font-weight: bold;
+}
+
+.time-badge {
+  font-weight: bold;
+}
+
+/* 签名图片样式 */
+.signature-img {
+  max-width: 100%;
+  max-height: 40px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.no-signature {
+  color: #999;
+  font-size: 11px;
+}
+
+/* 治疗时间单元格 */
+.treatment-time-cell {
+  text-align: center;
+  line-height: 1.2;
+  padding: 3px 2px;
+}
+
+.treatment-date {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 1px;
+  font-size: 11px;
+}
+
+.time-range {
+  display: block;
+  font-size: 11px;
+}
+
+.start-time, .end-time {
+  font-weight: bold;
+}
+
+/* 治疗统计 */
+.statistics-section {
+  padding: 10px 0;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.statistics-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  text-decoration: underline;
+}
+
+.statistics-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.statistics-table th,
+.statistics-table td {
+  border: 1px solid #000;
+  padding: 4px;
+  text-align: center;
+}
+
+.statistics-table th {
+  background: #f0f0f0;
+  font-weight: bold;
+}
+
+/* 签名区域 */
+.signature-section {
+  padding: 15px 0 10px 0;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.signature-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  text-decoration: underline;
+}
+
+.signature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.signature-item {
+  text-align: center;
+}
+
+.signature-line {
+  border-top: 1px solid #000;
+  width: 80%;
+  margin: 12px auto;
+  padding-top: 2px;
+}
+
+.signature-name {
+  font-weight: bold;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.signature-role {
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.signature-date {
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+/* 页脚 */
+.footer {
+  text-align: center;
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid #000;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.compliance-stamp {
+  position: absolute;
+  top: 30mm;
+  right: 30mm;
+  opacity: 0.03;
+  font-size: 50px;
+  font-weight: bold;
+  transform: rotate(15deg);
+  z-index: -1;
+}
+</style>

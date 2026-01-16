@@ -9,6 +9,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/login/Login.vue'),
     meta: { requiresAuth: false }
   },
+  // 打印页面 - 不需要Layout，独立页面
+  {
+    path: '/print/treatment-record',
+    name: 'PrintTreatmentRecord',
+    component: () => import('@/views/print/TreatmentRecord.vue'),
+    meta: { requiresAuth: false }
+  },
   {
     path: '/',
     component: () => import('@/views/layout/Layout.vue'),
