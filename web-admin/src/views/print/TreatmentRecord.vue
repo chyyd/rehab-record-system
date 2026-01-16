@@ -2,22 +2,36 @@
   <div class="print-container">
     <!-- 打印按钮 -->
     <div class="no-print">
-      <el-button type="primary" @click="handlePrint">🖨️ 打印</el-button>
-      <el-button @click="handleClose">关闭</el-button>
-      <el-alert
-        v-if="loading"
-        title="正在加载治疗记录数据..."
-        type="info"
-        :closable="false"
-        style="margin-top: 20px;"
-      />
-      <el-alert
-        v-if="error"
-        :title="error"
-        type="error"
-        :closable="false"
-        style="margin-top: 20px;"
-      />
+      <div class="action-bar">
+        <div class="action-buttons">
+          <button class="action-button primary" @click="handlePrint">
+            <svg xmlns="http://www.w3.org/2000/svg" class="button-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+            </svg>
+            <span>打印</span>
+          </button>
+          <button class="action-button secondary" @click="handleClose">
+            <svg xmlns="http://www.w3.org/2000/svg" class="button-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span>关闭</span>
+          </button>
+        </div>
+        <div class="status-messages">
+          <div v-if="loading" class="status-message info">
+            <svg xmlns="http://www.w3.org/2000/svg" class="status-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>正在加载治疗记录数据...</span>
+          </div>
+          <div v-if="error" class="status-message error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="status-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ error }}</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 打印内容 -->
@@ -386,7 +400,102 @@ function handleClose() {
 /* 打印按钮区域 */
 .no-print {
   padding: 20px;
-  text-align: right;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.action-bar {
+  max-width: 210mm;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-button.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.action-button.primary:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #63408a 100%);
+}
+
+.action-button.secondary {
+  background: white;
+  color: #4b5563;
+}
+
+.action-button.secondary:hover {
+  background: #f9fafb;
+  color: #1f2937;
+}
+
+.button-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.status-messages {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.status-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.status-message.info {
+  background: white;
+  color: #3b82f6;
+}
+
+.status-message.error {
+  background: white;
+  color: #ef4444;
+}
+
+.status-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* 打印容器 - 参考模板样式 */
