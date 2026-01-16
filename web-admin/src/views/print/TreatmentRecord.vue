@@ -41,9 +41,9 @@
         <div class="patient-title">患者基本信息</div>
         <table class="patient-info-table">
           <tr>
-            <td><span class="info-label">姓名：</span><span class="info-value">{{ patientInfo.name }}</span></td>
-            <td><span class="info-label">性别：</span><span class="info-value">{{ patientInfo.gender }}</span></td>
-            <td><span class="info-label">年龄：</span><span class="info-value">{{ patientInfo.age }}岁</span></td>
+            <td><span class="info-label">姓名：　　</span><span class="info-value">{{ patientInfo.name }}</span></td>
+            <td><span class="info-label">性别：　　</span><span class="info-value">{{ patientInfo.gender }}</span></td>
+            <td><span class="info-label">年龄：　　</span><span class="info-value">{{ patientInfo.age }}岁</span></td>
           </tr>
           <tr>
             <td><span class="info-label">医保类型：</span><span class="info-value">{{ patientInfo.insuranceType }}</span></td>
@@ -74,7 +74,6 @@
               <div class="assessment-date">{{ formatDateTime(admissionAssessment.assessmentDate) }}</div>
             </div>
             <div class="assessment-content">
-              <p><strong>评估地点：</strong>康复评定室</p>
               <p><strong>功能状态：</strong></p>
               <div class="functional-score" v-if="admissionAssessment.barthelIndex">Barthel指数：{{ admissionAssessment.barthelIndex }}分</div>
               <div class="functional-score" v-if="admissionAssessment.brunnstromStage">Brunnstrom分期：{{ formatBrunnstrom(admissionAssessment.brunnstromStage) }}</div>
@@ -95,7 +94,6 @@
               <div class="assessment-date">{{ formatDateTime(dischargeAssessment.assessmentDate) }}</div>
             </div>
             <div class="assessment-content">
-              <p><strong>评估地点：</strong>康复评定室</p>
               <p><strong>功能状态：</strong></p>
               <div class="functional-score" v-if="dischargeAssessment.barthelIndex">Barthel指数：{{ dischargeAssessment.barthelIndex }}分</div>
               <div class="functional-score" v-if="dischargeAssessment.brunnstromStage">Brunnstrom分期：{{ formatBrunnstrom(dischargeAssessment.brunnstromStage) }}</div>
