@@ -41,9 +41,9 @@
         <div class="patient-title">患者基本信息</div>
         <table class="patient-info-table">
           <tr>
-            <td><span class="info-label">姓　名：</span><span class="info-value">{{ patientInfo.name }}</span></td>
-            <td><span class="info-label">性　别：</span><span class="info-value">{{ patientInfo.gender }}</span></td>
-            <td><span class="info-label">年　龄：</span><span class="info-value">{{ patientInfo.age }}岁</span></td>
+            <td><span class="info-label">姓　　名：</span><span class="info-value">{{ patientInfo.name }}</span></td>
+            <td><span class="info-label">性　　别：</span><span class="info-value">{{ patientInfo.gender }}</span></td>
+            <td><span class="info-label">年　　龄：</span><span class="info-value">{{ patientInfo.age }}岁</span></td>
           </tr>
           <tr>
             <td><span class="info-label">医保类型：</span><span class="info-value">{{ patientInfo.insuranceType }}</span></td>
