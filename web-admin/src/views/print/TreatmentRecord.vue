@@ -63,8 +63,8 @@
         </div>
       </div>
 
-      <!-- 评估记录 -->
-      <div class="assessment-section">
+      <!-- 评估记录 - 只在有评估数据时显示 -->
+      <div class="assessment-section" v-if="admissionAssessment || dischargeAssessment">
         <div class="section-title">康复评估记录（入院/出院）</div>
         <div class="assessment-grid">
           <!-- 入院评估 -->
@@ -74,7 +74,7 @@
               <div class="assessment-date">{{ formatDateTime(admissionAssessment.assessmentDate) }}</div>
             </div>
             <div class="assessment-content">
-              <p><strong>评估医师：</strong>{{ admissionAssessment.therapistName }}</p>
+              <p><strong>评估医师：</strong>{{ admissionAssessment.therapistName || '-' }}</p>
               <p><strong>评估地点：</strong>康复评定室</p>
               <p><strong>功能状态：</strong></p>
               <div class="functional-score" v-if="admissionAssessment.barthelScore">Barthel指数：{{ admissionAssessment.barthelScore }}分</div>
@@ -87,9 +87,6 @@
               <p v-if="admissionAssessment.rehabGoals"><strong>康复目标：</strong>{{ admissionAssessment.rehabGoals }}</p>
             </div>
           </div>
-          <div class="assessment-card" v-else>
-            <p style="text-align: center; color: #999;">暂无入院评估记录</p>
-          </div>
 
           <!-- 出院评估 -->
           <div class="assessment-card" v-if="dischargeAssessment">
@@ -98,7 +95,7 @@
               <div class="assessment-date">{{ formatDateTime(dischargeAssessment.assessmentDate) }}</div>
             </div>
             <div class="assessment-content">
-              <p><strong>评估医师：</strong>{{ dischargeAssessment.therapistName }}</p>
+              <p><strong>评估医师：</strong>{{ dischargeAssessment.therapistName || '-' }}</p>
               <p><strong>评估地点：</strong>康复评定室</p>
               <p><strong>功能状态：</strong></p>
               <div class="functional-score" v-if="dischargeAssessment.barthelScore">Barthel指数：{{ dischargeAssessment.barthelScore }}分</div>
@@ -111,9 +108,6 @@
               <p v-if="dischargeAssessment.rehabGoals"><strong>康复效果：</strong>{{ dischargeAssessment.rehabGoals }}</p>
               <p v-if="dischargeAssessment.homeGuidance"><strong>家庭指导：</strong>{{ dischargeAssessment.homeGuidance }}</p>
             </div>
-          </div>
-          <div class="assessment-card" v-else>
-            <p style="text-align: center; color: #999;">暂无出院评估记录</p>
           </div>
         </div>
       </div>
@@ -368,7 +362,7 @@ function handleClose() {
 /* A4纸打印优化 */
 @page {
   size: A4;
-  margin: 0;
+  margin: 15mm;
 }
 
 @media print {
@@ -467,45 +461,47 @@ function handleClose() {
 
 .patient-info-table td {
   padding: 2px 4px;
-  vertical-align: top;
+  vertical-align: middle;
   border-bottom: 1px dotted #ccc;
   white-space: nowrap;
 }
 
 .info-label {
   display: inline-block;
-  min-width: 60px;
+  width: 70px;
   font-weight: bold;
   text-align: right;
-  padding-right: 5px;
+  padding-right: 8px;
   white-space: nowrap;
 }
 
 .info-value {
   display: inline-block;
   font-weight: normal;
-  min-width: 110px;
   white-space: nowrap;
 }
 
 .diagnosis-row {
   width: 100%;
+  padding: 2px 4px;
+  border-bottom: 1px dotted #ccc;
 }
 
 .diagnosis-label {
   display: inline-block;
-  min-width: 60px;
+  width: 70px;
   font-weight: bold;
   text-align: right;
-  padding-right: 5px;
+  padding-right: 8px;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .diagnosis-value {
   display: inline-block;
   font-weight: normal;
-  width: calc(100% - 65px);
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* 评估记录 */
