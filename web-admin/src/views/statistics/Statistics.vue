@@ -84,49 +84,60 @@
 
       <!-- Statistics Cards -->
       <el-row :gutter="20" class="stats-row">
-        <el-col :xs="12" :sm="12" :md="6">
-          <div class="stat-card stat-card-1">
-            <div class="stat-icon">
-              <el-icon :size="32"><Document /></el-icon>
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/patients')">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <el-icon :size="30"><Document /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ statistics.totalRecords }}</div>
+                <div class="stat-label">总治疗人次</div>
+              </div>
             </div>
-            <div class="stat-content">
-              <div class="stat-label">总治疗人次</div>
-              <div class="stat-value">{{ statistics.totalRecords }}</div>
-            </div>
-          </div>
+          </el-card>
         </el-col>
-        <el-col :xs="12" :sm="12" :md="6">
-          <div class="stat-card stat-card-2">
-            <div class="stat-icon">
-              <el-icon :size="32"><Clock /></el-icon>
+
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/records')">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <el-icon :size="30"><Clock /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ statistics.totalDuration }}</div>
+                <div class="stat-label">总治疗时长(小时)</div>
+              </div>
             </div>
-            <div class="stat-content">
-              <div class="stat-label">总治疗时长(小时)</div>
-              <div class="stat-value">{{ statistics.totalDuration }}</div>
-            </div>
-          </div>
+          </el-card>
         </el-col>
-        <el-col :xs="12" :sm="12" :md="6">
-          <div class="stat-card stat-card-3">
-            <div class="stat-icon">
-              <el-icon :size="32"><User /></el-icon>
+
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/patients')">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <el-icon :size="30"><User /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ statistics.totalPatients }}</div>
+                <div class="stat-label">治疗患者数</div>
+              </div>
             </div>
-            <div class="stat-content">
-              <div class="stat-label">治疗患者数</div>
-              <div class="stat-value">{{ statistics.totalPatients }}</div>
-            </div>
-          </div>
+          </el-card>
         </el-col>
-        <el-col :xs="12" :sm="12" :md="6">
-          <div class="stat-card stat-card-4">
-            <div class="stat-icon">
-              <el-icon :size="32"><UserFilled /></el-icon>
+
+        <el-col :span="6">
+          <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/users')">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <el-icon :size="30"><UserFilled /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-value">{{ statistics.activeTherapists }}</div>
+                <div class="stat-label">活跃治疗师</div>
+              </div>
             </div>
-            <div class="stat-content">
-              <div class="stat-label">活跃治疗师</div>
-              <div class="stat-value">{{ statistics.activeTherapists }}</div>
-            </div>
-          </div>
+          </el-card>
         </el-col>
       </el-row>
 
@@ -194,10 +205,13 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Document, Clock, User, UserFilled, Search, Refresh, Calendar } from '@element-plus/icons-vue'
 import request from '@/utils/request'
 import dayjs from 'dayjs'
+
+const router = useRouter()
 
 const dateRange = ref<any[]>([])
 const selectedRange = ref<string>('month')
@@ -397,15 +411,86 @@ async function loadStatistics() {
 function handleReset() {
   selectDateRange('month')
 }
+
+function navigateTo(path: string) {
+  router.push(path)
+}
 </script>
 
 <style lang="scss" scoped>
 .statistics {
+  .stat-card-wrapper {
+    cursor: pointer;
+    transition: all 0.2s;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    :deep(.el-card__body) {
+      padding: 20px;
+    }
+  }
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+
+    .stat-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      margin-right: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+      &:nth-child(1) {
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+      }
+
+      &:nth-child(2) {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      }
+
+      &:nth-child(3) {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      }
+
+      &:nth-child(4) {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      }
+    }
+
+    .stat-content {
+      flex: 1;
+
+      .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 5px;
+      }
+
+      .stat-label {
+        font-size: 14px;
+        color: #64748b;
+        font-weight: 500;
+      }
+    }
+  }
+
   .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-weight: bold;
+    font-weight: 600;
     font-size: 16px;
     color: #1e293b;
   }
@@ -454,69 +539,6 @@ function handleReset() {
 
   .stats-row {
     margin-bottom: 20px;
-
-    .stat-card {
-      display: flex;
-      align-items: center;
-      padding: 24px;
-      border-radius: 12px;
-      color: #fff;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-
-      &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      }
-
-      .stat-icon {
-        width: 64px;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
-        margin-right: 20px;
-        flex-shrink: 0;
-      }
-
-      .stat-content {
-        flex: 1;
-        min-width: 0;
-
-        .stat-label {
-          font-size: 14px;
-          margin-bottom: 8px;
-          opacity: 0.95;
-          font-weight: 500;
-        }
-
-        .stat-value {
-          font-size: 32px;
-          font-weight: 700;
-          line-height: 1;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-      }
-
-      // 渐变色主题（与仪表盘统一）
-      &.stat-card-1 {
-        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-      }
-
-      &.stat-card-2 {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      }
-
-      &.stat-card-3 {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-      }
-
-      &.stat-card-4 {
-        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-      }
-    }
   }
 
   // 表格卡片样式优化
@@ -555,24 +577,6 @@ function handleReset() {
 // 响应式设计
 @media (max-width: 768px) {
   .statistics {
-    .stats-row {
-      .stat-card {
-        padding: 16px;
-
-        .stat-icon {
-          width: 48px;
-          height: 48px;
-          margin-right: 12px;
-        }
-
-        .stat-content {
-          .stat-value {
-            font-size: 24px;
-          }
-        }
-      }
-    }
-
     .filter-form {
       :deep(.el-form-item) {
         display: block;
