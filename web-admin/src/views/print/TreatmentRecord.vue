@@ -74,17 +74,17 @@
               <div class="assessment-date">{{ formatDateTime(admissionAssessment.assessmentDate) }}</div>
             </div>
             <div class="assessment-content">
-              <p><strong>评估医师：</strong>{{ admissionAssessment.therapistName || '-' }}</p>
               <p><strong>评估地点：</strong>康复评定室</p>
               <p><strong>功能状态：</strong></p>
-              <div class="functional-score" v-if="admissionAssessment.barthelScore">Barthel指数：{{ admissionAssessment.barthelScore }}分</div>
-              <div class="functional-score" v-if="admissionAssessment.brunnstromStage">Brunnstrom分期：{{ admissionAssessment.brunnstromStage }}</div>
-              <div class="functional-score" v-if="admissionAssessment.balanceFunction">平衡功能：{{ admissionAssessment.balanceFunction }}</div>
-              <div class="functional-score" v-if="admissionAssessment.muscleStrength">肌力：{{ admissionAssessment.muscleStrength }}</div>
-              <div class="functional-score" v-if="admissionAssessment.mmseScore">认知功能：MMSE评分{{ admissionAssessment.mmseScore }}分</div>
-              <div class="functional-score" v-if="admissionAssessment.swallowingFunction">吞咽功能：洼田饮水试验{{ admissionAssessment.swallowingFunction }}级</div>
-              <div class="functional-score" v-if="admissionAssessment.aphasiaScore">语言功能：失语症评定{{ admissionAssessment.aphasiaScore }}分</div>
-              <p v-if="admissionAssessment.rehabGoals"><strong>康复目标：</strong>{{ admissionAssessment.rehabGoals }}</p>
+              <div class="functional-score" v-if="admissionAssessment.barthelIndex">Barthel指数：{{ admissionAssessment.barthelIndex }}分</div>
+              <div class="functional-score" v-if="admissionAssessment.brunnstromStage">Brunnstrom分期：{{ formatBrunnstrom(admissionAssessment.brunnstromStage) }}</div>
+              <div class="functional-score" v-if="admissionAssessment.balanceFunction">平衡功能：{{ formatBalance(admissionAssessment.balanceFunction) }}</div>
+              <div class="functional-score" v-if="admissionAssessment.muscleStrength">肌力评定：{{ formatMuscleStrength(admissionAssessment.muscleStrength) }}</div>
+              <div class="functional-score" v-if="admissionAssessment.cognitiveMMSE">认知功能：MMSE评分{{ admissionAssessment.cognitiveMMSE }}分</div>
+              <div class="functional-score" v-if="admissionAssessment.swallowingTest">吞咽功能：洼田饮水试验{{ admissionAssessment.swallowingTest }}级</div>
+              <div class="functional-score" v-if="admissionAssessment.languageScore">语言功能：失语症评定{{ admissionAssessment.languageScore }}分</div>
+              <p v-if="admissionAssessment.otherNotes"><strong>其他备注：</strong>{{ admissionAssessment.otherNotes }}</p>
+              <p v-if="admissionAssessment.rehabGoal"><strong>康复目标：</strong>{{ admissionAssessment.rehabGoal }}</p>
             </div>
           </div>
 
@@ -95,17 +95,17 @@
               <div class="assessment-date">{{ formatDateTime(dischargeAssessment.assessmentDate) }}</div>
             </div>
             <div class="assessment-content">
-              <p><strong>评估医师：</strong>{{ dischargeAssessment.therapistName || '-' }}</p>
               <p><strong>评估地点：</strong>康复评定室</p>
               <p><strong>功能状态：</strong></p>
-              <div class="functional-score" v-if="dischargeAssessment.barthelScore">Barthel指数：{{ dischargeAssessment.barthelScore }}分</div>
-              <div class="functional-score" v-if="dischargeAssessment.brunnstromStage">Brunnstrom分期：{{ dischargeAssessment.brunnstromStage }}</div>
-              <div class="functional-score" v-if="dischargeAssessment.balanceFunction">平衡功能：{{ dischargeAssessment.balanceFunction }}</div>
-              <div class="functional-score" v-if="dischargeAssessment.muscleStrength">肌力：{{ dischargeAssessment.muscleStrength }}</div>
-              <div class="functional-score" v-if="dischargeAssessment.mmseScore">认知功能：MMSE评分{{ dischargeAssessment.mmseScore }}分</div>
-              <div class="functional-score" v-if="dischargeAssessment.swallowingFunction">吞咽功能：洼田饮水试验{{ dischargeAssessment.swallowingFunction }}级</div>
-              <div class="functional-score" v-if="dischargeAssessment.aphasiaScore">语言功能：失语症评定{{ dischargeAssessment.aphasiaScore }}分</div>
-              <p v-if="dischargeAssessment.rehabGoals"><strong>康复效果：</strong>{{ dischargeAssessment.rehabGoals }}</p>
+              <div class="functional-score" v-if="dischargeAssessment.barthelIndex">Barthel指数：{{ dischargeAssessment.barthelIndex }}分</div>
+              <div class="functional-score" v-if="dischargeAssessment.brunnstromStage">Brunnstrom分期：{{ formatBrunnstrom(dischargeAssessment.brunnstromStage) }}</div>
+              <div class="functional-score" v-if="dischargeAssessment.balanceFunction">平衡功能：{{ formatBalance(dischargeAssessment.balanceFunction) }}</div>
+              <div class="functional-score" v-if="dischargeAssessment.muscleStrength">肌力评定：{{ formatMuscleStrength(dischargeAssessment.muscleStrength) }}</div>
+              <div class="functional-score" v-if="dischargeAssessment.cognitiveMMSE">认知功能：MMSE评分{{ dischargeAssessment.cognitiveMMSE }}分</div>
+              <div class="functional-score" v-if="dischargeAssessment.swallowingTest">吞咽功能：洼田饮水试验{{ dischargeAssessment.swallowingTest }}级</div>
+              <div class="functional-score" v-if="dischargeAssessment.languageScore">语言功能：失语症评定{{ dischargeAssessment.languageScore }}分</div>
+              <p v-if="dischargeAssessment.otherNotes"><strong>其他备注：</strong>{{ dischargeAssessment.otherNotes }}</p>
+              <p v-if="dischargeAssessment.rehabEffect"><strong>康复效果：</strong>{{ dischargeAssessment.rehabEffect }}</p>
               <p v-if="dischargeAssessment.homeGuidance"><strong>家庭指导：</strong>{{ dischargeAssessment.homeGuidance }}</p>
             </div>
           </div>
@@ -342,6 +342,39 @@ function formatTime(date: string): string {
 
 function getSignatureUrl(filename: string): string {
   return `/api/uploads/photos/${filename}`
+}
+
+// 格式化Brunnstrom分期
+function formatBrunnstrom(data: any): string {
+  if (!data) return ''
+  const obj = typeof data === 'string' ? JSON.parse(data) : data
+  const parts: string[] = []
+  if (obj.upper) parts.push(`上肢${obj.upper}`)
+  if (obj.hand) parts.push(`手${obj.hand}`)
+  if (obj.lower) parts.push(`下肢${obj.lower}`)
+  return parts.join('，')
+}
+
+// 格式化平衡功能
+function formatBalance(data: any): string {
+  if (!data) return ''
+  const obj = typeof data === 'string' ? JSON.parse(data) : data
+  const parts: string[] = []
+  if (obj.sitting) parts.push(`坐位平衡${obj.sitting}`)
+  if (obj.standing) parts.push(`立位平衡${obj.standing}`)
+  return parts.join('，')
+}
+
+// 格式化肌力评定
+function formatMuscleStrength(data: any): string {
+  if (!data) return ''
+  const obj = typeof data === 'string' ? JSON.parse(data) : data
+  const parts: string[] = []
+  if (obj.leftUpper) parts.push(`左上肢${obj.leftUpper}`)
+  if (obj.leftLower) parts.push(`左下肢${obj.leftLower}`)
+  if (obj.rightUpper) parts.push(`右上肢${obj.rightUpper}`)
+  if (obj.rightLower) parts.push(`右下肢${obj.rightLower}`)
+  return parts.join('，')
 }
 
 function handlePrint() {
