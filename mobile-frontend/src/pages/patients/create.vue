@@ -329,17 +329,33 @@ async function handleSubmit() {
     if (response.statusCode === 201) {
       const newPatientId = response.data.id
 
-      // 显示保存成功提示
+      // 显示保存成功提示，然后跳转
       uni.showToast({
         title: '保存成功',
         icon: 'success',
         duration: 1000
       })
 
-      // 立即跳转到创建治疗记录页面，传递患者ID
-      uni.redirectTo({
-        url: `/pages/record/create?patientId=${newPatientId}`
-      })
+      // 延迟跳转，确保toast显示
+      setTimeout(() => {
+        // 使用reLaunch清除页面栈并跳转，避免tabBar页面干扰
+        uni.reLaunch({
+          url: `/pages/record/create?patientId=${newPatientId}`,
+          success: () => {
+            console.log('跳转到治疗记录页面成功，患者ID:', newPatientId)
+          },
+          fail: (err) => {
+            console.error('跳转失败:', err)
+            // 如果reLaunch失败，尝试使用navigateTo
+            uni.navigateTo({
+              url: `/pages/record/create?patientId=${newPatientId}`,
+              fail: (err2) => {
+                console.error('navigateTo也失败:', err2)
+              }
+            })
+          }
+        })
+      }, 500)
     } else {
       throw new Error(response.data?.message || '保存失败')
     }
