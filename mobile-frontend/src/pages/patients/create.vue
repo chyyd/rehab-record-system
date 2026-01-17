@@ -246,9 +246,9 @@ function validateForm(): boolean {
     return false
   }
 
-  if (!formData.value.age || formData.value.age <= 0) {
+  if (!formData.value.age || parseInt(formData.value.age) <= 0) {
     uni.showToast({
-      title: '请输入年龄',
+      title: '请输入有效的年龄',
       icon: 'none'
     })
     return false
@@ -314,7 +314,7 @@ async function handleSubmit() {
         name: formData.value.name,
         medicalRecordNo: formData.value.medicalRecordNo,
         gender: formData.value.gender,
-        age: parseInt(formData.value.age),
+        age: String(formData.value.age), // 转换为字符串以匹配数据库schema
         insuranceType: formData.value.insuranceType,
         doctor: formData.value.doctor,
         admissionDate: formData.value.admissionDate,
