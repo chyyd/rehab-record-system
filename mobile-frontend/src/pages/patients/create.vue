@@ -167,7 +167,7 @@ const formData = ref({
 const pinyinPreview = ref('')
 
 // 医保类型选项
-const insuranceTypes = ['城镇职工医保', '城乡居民医保', '新农合', '自费', '其他']
+const insuranceTypes = ['城镇职工基本医疗保险', '城乡居民基本医疗保险', '铁路医保', '异地医保', '自费']
 
 // 医保类型索引
 const insuranceTypeIndex = computed(() => {
