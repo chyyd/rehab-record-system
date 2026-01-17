@@ -11,8 +11,37 @@
       </view>
     </view>
 
+    <!-- 🔥 最近使用（快捷方式） -->
+    <view class="section" v-if="recentProjects.length > 0">
+      <view class="section-title">
+        <text>🔥 最近使用</text>
+      </view>
+
+      <view class="recent-projects-grid">
+        <view
+          class="recent-project-card"
+          :class="{ active: selectedProject?.id === project.projectId }"
+          v-for="project in recentProjects"
+          :key="project.projectId"
+          @click="selectProjectById(project.projectId)"
+        >
+          <view class="recent-project-icon">
+            <text class="icon-fire">🔥</text>
+          </view>
+          <view class="recent-project-info">
+            <text class="recent-project-name">{{ project.projectName }}</text>
+            <text class="recent-project-count">已使用 {{ project.count }} 次</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="expand-all-btn" @click="toggleProjectsView">
+        <text class="expand-text">{{ showAllProjects ? '▼ 收起全部项目' : '📋 展开全部项目' }}</text>
+      </view>
+    </view>
+
     <!-- 治疗项目选择 -->
-    <view class="section">
+    <view class="section" v-show="showAllProjects || recentProjects.length === 0">
       <view class="section-title">
         <text class="required">*</text>
         <text>选择治疗项目</text>
@@ -83,6 +112,9 @@ const patientInfo = ref<any>(null)
 
 const projects = ref<any[]>([])
 const selectedProject = ref<any>(null)
+const recentProjects = ref<any[]>([])
+const showAllProjects = ref(false)
+const recentProjectCache = ref<any>(null)
 
 const saved = ref(false)
 const saving = ref(false)
@@ -96,6 +128,7 @@ onLoad((options: any) => {
   }
 
   loadProjects()
+  loadRecentProjects()
 })
 
 async function loadPatientInfo() {
@@ -134,8 +167,95 @@ async function loadProjects() {
   }
 }
 
+async function loadRecentProjects() {
+  const CACHE_KEY = 'recentProjectsCache'
+  const CACHE_DATE_KEY = 'recentProjectsCacheDate'
+  const today = new Date().toDateString()
+
+  // 检查缓存是否过期（每天0点更新）
+  try {
+    const cachedDate = uni.getStorageSync(CACHE_DATE_KEY)
+    const shouldRefresh = !cachedDate || cachedDate !== today
+
+    if (!shouldRefresh && recentProjectCache.value) {
+      // 使用缓存数据
+      recentProjects.value = recentProjectCache.value
+      console.log('使用快捷项目缓存')
+      return
+    }
+  } catch (e) {
+    console.log('读取缓存失败，重新获取')
+  }
+
+  // 从服务器获取最新数据
+  try {
+    const response = await request({
+      url: '/projects/recent',
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      data: {
+        days: '7'
+      }
+    })
+
+    if (response.statusCode === 200 && response.data?.recentProjects) {
+      recentProjects.value = response.data.recentProjects
+      recentProjectCache.value = response.data.recentProjects
+
+      // 保存缓存和日期
+      try {
+        uni.setStorageSync(CACHE_KEY, response.data.recentProjects)
+        uni.setStorageSync(CACHE_DATE_KEY, today)
+      } catch (e) {
+        console.log('保存缓存失败:', e)
+      }
+
+      console.log('快捷项目已更新:', response.data.recentProjects.length)
+    }
+  } catch (error) {
+    console.error('加载快捷项目失败:', error)
+
+    // 如果请求失败，尝试使用本地缓存
+    try {
+      const cached = uni.getStorageSync(CACHE_KEY)
+      if (cached && cached.length > 0) {
+        recentProjects.value = cached
+        console.log('使用本地缓存快捷项目')
+      }
+    } catch (e) {
+      console.log('读取本地缓存也失败')
+    }
+  }
+}
+
+function toggleProjectsView() {
+  showAllProjects.value = !showAllProjects.value
+  if (showAllProjects.value && projects.value.length === 0) {
+    loadProjects()
+  }
+}
+
 function selectProject(project: any) {
   selectedProject.value = project
+}
+
+function selectProjectById(projectId: number) {
+  const project = projects.value.find((p) => p.id === projectId)
+  if (project) {
+    selectedProject.value = project
+  } else {
+    // 如果全部项目列表还没加载，先从快捷项目临时设置
+    const recentProject = recentProjects.value.find((p) => p.projectId === projectId)
+    if (recentProject) {
+      selectedProject.value = {
+        id: recentProject.projectId,
+        name: recentProject.projectName,
+        defaultDuration: 30 // 默认值，后续会从完整项目列表更新
+      }
+    }
+  }
 }
 
 async function startTreatment() {
@@ -603,6 +723,90 @@ $bg-page: #f8fafc;
 
   &:focus {
     border-color: $medical-blue;
+  }
+}
+
+/* 快捷项目样式 */
+.recent-projects-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.recent-project-card {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 20rpx;
+  border: 3rpx solid transparent;
+  transition: all 0.3s ease;
+  box-shadow: 0 4rpx 12rpx rgba(251, 191, 36, 0.2);
+
+  &.active {
+    background: linear-gradient(135deg, $medical-blue 0%, $primary-dark 100%);
+    border-color: $medical-blue;
+    box-shadow: 0 6rpx 20rpx rgba(14, 165, 233, 0.4);
+
+    .recent-project-name,
+    .recent-project-count,
+    .icon-fire {
+      color: #fff;
+    }
+  }
+
+  .recent-project-icon {
+    width: 80rpx;
+    height: 80rpx;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 16rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20rpx;
+
+    .icon-fire {
+      font-size: 40rpx;
+    }
+  }
+
+  .recent-project-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .recent-project-name {
+      font-size: 30rpx;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 6rpx;
+    }
+
+    .recent-project-count {
+      font-size: 24rpx;
+      color: #64748b;
+    }
+  }
+}
+
+.expand-all-btn {
+  margin-top: 20rpx;
+  padding: 20rpx;
+  background: linear-gradient(135deg, $sky-light 0%, rgba(224, 242, 254, 0.5) 100%);
+  border-radius: 16rpx;
+  text-align: center;
+  border: 2rpx dashed $medical-blue;
+  transition: all 0.2s;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+
+  .expand-text {
+    font-size: 26rpx;
+    color: $medical-blue;
+    font-weight: 500;
   }
 }
 </style>
