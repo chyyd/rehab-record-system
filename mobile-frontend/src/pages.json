@@ -72,8 +72,8 @@
     "height": "55px",
     "list": [
       {
-        "pagePath": "pages/home/home",
-        "text": "工作台"
+        "pagePath": "pages/patients/list",
+        "text": "患者列表"
       },
       {
         "pagePath": "pages/scan/scan",
@@ -82,8 +82,8 @@
         "selectedIconPath": "static/tabbar/scan-active.png"
       },
       {
-        "pagePath": "pages/patients/list",
-        "text": "患者列表"
+        "pagePath": "pages/home/home",
+        "text": "工作台"
       }
     ]
   },
