@@ -111,6 +111,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { usePatientStore } from '@/stores/patient'
 import { request } from '@/utils/request'
@@ -138,16 +139,19 @@ function handleUnauthorizedError() {
   userStore.logout()
 }
 
+// 页面首次加载
 onMounted(async () => {
-  console.log('🟢 ========== 患者列表页面 onMounted ==========')
-  console.log('patientStore:', patientStore)
+  console.log('🟢 onMounted: 首次加载患者列表')
+  await loadPatients()
+})
+
+// 每次显示页面时检查（包括从其他页面返回）
+onShow(async () => {
+  console.log('🟡 ========== onShow: 患者列表显示 ==========')
   console.log('patientStore.hasPendingSearch():', patientStore.hasPendingSearch())
   console.log('patientStore.pendingSearchQuery:', patientStore.pendingSearchQuery)
 
-  await loadPatients()
-
   // 检查是否有待搜索的患者
-  console.log('检查是否有待搜索内容...')
   if (patientStore.hasPendingSearch()) {
     const query = patientStore.getAndClearPendingSearch()
     console.log('✅ 发现已设置的待搜索内容:', query)
