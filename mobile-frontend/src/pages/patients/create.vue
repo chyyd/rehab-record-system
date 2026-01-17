@@ -31,11 +31,59 @@
           <text class="form-label">病历号</text>
           <input
             class="form-input"
-            type="text"
+            type="number"
             v-model="formData.medicalRecordNo"
             placeholder="请输入病历号"
             placeholder-style="color: #999"
           />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">性别</text>
+          <view class="radio-group">
+            <view
+              class="radio-item"
+              :class="{ active: formData.gender === '男' }"
+              @click="formData.gender = '男'"
+            >
+              <text class="radio-text">男</text>
+            </view>
+            <view
+              class="radio-item"
+              :class="{ active: formData.gender === '女' }"
+              @click="formData.gender = '女'"
+            >
+              <text class="radio-text">女</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">年龄</text>
+          <input
+            class="form-input"
+            type="number"
+            v-model="formData.age"
+            placeholder="请输入年龄"
+            placeholder-style="color: #999"
+          />
+        </view>
+
+        <view class="form-item">
+          <text class="form-label">医保类型</text>
+          <picker
+            mode="selector"
+            :range="insuranceTypes"
+            :value="insuranceTypeIndex"
+            @change="onInsuranceTypeChange"
+          >
+            <view class="picker-input">
+              <text :class="['picker-text', { placeholder: !formData.insuranceType }]">
+                {{ formData.insuranceType || '请选择医保类型' }}
+              </text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </picker>
         </view>
       </view>
 
@@ -95,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { request } from '@/utils/request'
 import { pinyin } from 'pinyin-pro'
@@ -107,6 +155,9 @@ const token = userStore.getToken()
 const formData = ref({
   name: '',
   medicalRecordNo: '',
+  gender: '男',
+  age: '',
+  insuranceType: '',
   doctor: '',
   admissionDate: '',
   diagnosis: '',
@@ -114,6 +165,26 @@ const formData = ref({
 
 // 拼音预览
 const pinyinPreview = ref('')
+
+// 医保类型选项
+const insuranceTypes = ['城镇职工医保', '城乡居民医保', '新农合', '自费', '其他']
+
+// 医保类型索引
+const insuranceTypeIndex = computed(() => {
+  return insuranceTypes.indexOf(formData.value.insuranceType)
+})
+
+// 初始化：设置入院日期为今天
+function initFormData() {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  formData.value.admissionDate = `${year}-${month}-${day}`
+}
+
+// 页面加载时初始化
+initFormData()
 
 // 生成拼音（使用pinyin-pro库）
 function generatePinyin() {
@@ -139,6 +210,11 @@ function generatePinyin() {
   }
 }
 
+// 选择医保类型
+function onInsuranceTypeChange(e: any) {
+  formData.value.insuranceType = insuranceTypes[e.detail.value]
+}
+
 // 选择入院日期
 function onAdmissionDateChange(e: any) {
   formData.value.admissionDate = e.detail.value
@@ -157,6 +233,30 @@ function validateForm(): boolean {
   if (!formData.value.medicalRecordNo.trim()) {
     uni.showToast({
       title: '请输入病历号',
+      icon: 'none'
+    })
+    return false
+  }
+
+  if (!formData.value.gender) {
+    uni.showToast({
+      title: '请选择性别',
+      icon: 'none'
+    })
+    return false
+  }
+
+  if (!formData.value.age || formData.value.age <= 0) {
+    uni.showToast({
+      title: '请输入年龄',
+      icon: 'none'
+    })
+    return false
+  }
+
+  if (!formData.value.insuranceType) {
+    uni.showToast({
+      title: '请选择医保类型',
       icon: 'none'
     })
     return false
@@ -213,13 +313,13 @@ async function handleSubmit() {
       data: {
         name: formData.value.name,
         medicalRecordNo: formData.value.medicalRecordNo,
+        gender: formData.value.gender,
+        age: parseInt(formData.value.age),
+        insuranceType: formData.value.insuranceType,
         doctor: formData.value.doctor,
         admissionDate: formData.value.admissionDate,
         diagnosis: formData.value.diagnosis,
-        pinyin: finalPinyin, // 自动生成的拼音
-        gender: '男', // 默认值
-        age: 0, // 默认值
-        insuranceType: '自费', // 默认值
+        pinyin: finalPinyin,
         needsAssessment: false // 手机端新增患者默认不需要评估
       }
     })
@@ -352,6 +452,39 @@ $bg-page: #f8fafc;
     &:focus {
       border-color: $medical-blue;
       background-color: #fff;
+    }
+  }
+
+  .radio-group {
+    display: flex;
+    gap: 24rpx;
+
+    .radio-item {
+      flex: 1;
+      height: 80rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #f8fafc;
+      border: 2rpx solid #e2e8f0;
+      border-radius: 16rpx;
+      transition: all 0.2s;
+
+      .radio-text {
+        font-size: 28rpx;
+        color: #475569;
+      }
+
+      &.active {
+        background: linear-gradient(135deg, $medical-blue 0%, $medical-cyan 100%);
+        border-color: $medical-blue;
+        box-shadow: 0 4rpx 12rpx rgba(14, 165, 233, 0.2);
+
+        .radio-text {
+          color: #fff;
+          font-weight: 600;
+        }
+      }
     }
   }
 
