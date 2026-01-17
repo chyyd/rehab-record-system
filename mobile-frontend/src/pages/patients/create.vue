@@ -328,6 +328,8 @@ async function handleSubmit() {
 
     if (response.statusCode === 201) {
       const newPatientId = response.data.id
+      console.log('患者创建成功，ID:', newPatientId)
+      console.log('准备跳转到治疗记录页面...')
 
       // 显示保存成功提示，然后跳转
       uni.showToast({
@@ -338,19 +340,26 @@ async function handleSubmit() {
 
       // 延迟跳转，确保toast显示
       setTimeout(() => {
+        const targetUrl = `/pages/record/create?patientId=${newPatientId}`
+        console.log('执行跳转，目标URL:', targetUrl)
+
         // 使用reLaunch清除页面栈并跳转，避免tabBar页面干扰
         uni.reLaunch({
-          url: `/pages/record/create?patientId=${newPatientId}`,
+          url: targetUrl,
           success: () => {
-            console.log('跳转到治疗记录页面成功，患者ID:', newPatientId)
+            console.log('✅ 跳转到治疗记录页面成功，患者ID:', newPatientId)
           },
           fail: (err) => {
-            console.error('跳转失败:', err)
+            console.error('❌ reLaunch跳转失败:', err)
+            console.log('尝试使用navigateTo...')
             // 如果reLaunch失败，尝试使用navigateTo
             uni.navigateTo({
-              url: `/pages/record/create?patientId=${newPatientId}`,
+              url: targetUrl,
+              success: () => {
+                console.log('✅ navigateTo跳转成功')
+              },
               fail: (err2) => {
-                console.error('navigateTo也失败:', err2)
+                console.error('❌ navigateTo也失败:', err2)
               }
             })
           }

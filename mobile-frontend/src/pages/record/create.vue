@@ -100,9 +100,14 @@ const showSignature = ref(false)
 const signatureImage = ref('')
 
 onLoad((options: any) => {
+  console.log('📱 治疗记录页面 onLoad, options:', options)
+
   if (options.patientId) {
     patientId.value = parseInt(options.patientId)
+    console.log('✅ 接收到患者ID:', patientId.value)
     loadPatientInfo()
+  } else {
+    console.log('❌ 未接收到patientId参数')
   }
 
   loadProjects()
@@ -111,6 +116,7 @@ onLoad((options: any) => {
 
 async function loadPatientInfo() {
   try {
+    console.log('🔄 开始加载患者信息，ID:', patientId.value)
     const response = await request({
       url: `/patients/${patientId.value}`,
       method: 'GET',
@@ -121,9 +127,12 @@ async function loadPatientInfo() {
 
     if (response.statusCode === 200) {
       patientInfo.value = response.data
+      console.log('✅ 患者信息加载成功:', patientInfo.value)
+    } else {
+      console.error('❌ 患者信息加载失败，状态码:', response.statusCode)
     }
   } catch (error) {
-    console.error('加载患者信息失败:', error)
+    console.error('❌ 加载患者信息异常:', error)
   }
 }
 
