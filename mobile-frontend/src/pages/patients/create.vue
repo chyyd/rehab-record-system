@@ -95,9 +95,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { request } from '@/utils/request'
+import { pinyin } from 'pinyin-pro'
 
 const userStore = useUserStore()
 const token = userStore.getToken()
@@ -114,29 +115,7 @@ const formData = ref({
 // 拼音预览
 const pinyinPreview = ref('')
 
-// 简单的汉字转拼音映射（常用字）
-const pinyinMap: Record<string, string> = {
-  // 常用姓氏
-  '王': 'wang', '李': 'li', '张': 'zhang', '刘': 'liu', '陈': 'chen',
-  '杨': 'yang', '黄': 'huang', '赵': 'zhao', '吴': 'wu', '周': 'zhou',
-  '徐': 'xu', '孙': 'sun', '马': 'ma', '朱': 'zhu', '胡': 'hu',
-  '郭': 'guo', '何': 'he', '林': 'lin', '罗': 'luo', '高': 'gao',
-  // 常用名字
-  '建': 'jian', '国': 'guo', '明': 'ming', '华': 'hua', '文': 'wen',
-  '平': 'ping', '志': 'zhi', '伟': 'wei', '芳': 'fang', '敏': 'min',
-  '静': 'jing', '丽': 'li', '军': 'jun', '强': 'qiang', '磊': 'lei',
-  '洋': 'yang', '勇': 'yong', '艳': 'yan', '杰': 'jie', '涛': 'tao',
-  '明': 'ming', '超': 'chao', '秀': 'xiu', '霞': 'xia', '海': 'hai',
-  '鑫': 'xin', '德': 'de', '成': 'cheng', '晓': 'xiao', '波': 'bo',
-  '武': 'wu', '婷': 'ting', '桂': 'gui', '英': 'ying', '发': 'fa',
-  '刚': 'gang', '小': 'xiao', '红': 'hong', '梅': 'mei', '生': 'sheng',
-  '大': 'da', '永': 'yong', '林': 'lin', '志': 'zhi', '金': 'jin',
-  '玉': 'yu', '美': 'mei', '才': 'cai', '学': 'xue', '友': 'you',
-  '荣': 'rong', '祥': 'xiang', '光': 'guang', '春': 'chun', '宝': 'bao',
-  '兰': 'lan', '东': 'dong', '山': 'shan', '民': 'min', '秋': 'qiu'
-}
-
-// 生成拼音
+// 生成拼音（使用pinyin-pro库）
 function generatePinyin() {
   const name = formData.value.name.trim()
   if (!name) {
@@ -144,21 +123,20 @@ function generatePinyin() {
     return
   }
 
-  const pinyinArray: string[] = []
-  for (let i = 0; i < name.length; i++) {
-    const char = name[i]
-    const py = pinyinMap[char] || ''
-    if (py) {
-      pinyinArray.push(py)
-    }
+  try {
+    // 使用pinyin-pro库生成拼音首字母
+    const result = pinyin(name, { pattern: 'first', toneType: 'none' })
+    const pinyinStr = result.toLowerCase().replace(/\s+/g, '')
+
+    // 同时生成完整拼音用于预览
+    const fullPinyin = pinyin(name, { pattern: 'pinyin', toneType: 'none' })
+    const fullPinyinStr = fullPinyin.join(' ')
+
+    pinyinPreview.value = `${pinyinStr} (${fullPinyinStr})`
+  } catch (error) {
+    console.error('生成拼音失败:', error)
+    pinyinPreview.value = ''
   }
-
-  // 取每个字的拼音首字母
-  const initials = pinyinArray.map(py => py.charAt(0)).join('')
-
-  // 完整拼音（空格分隔）和首字母
-  const fullPinyin = pinyinArray.join(' ')
-  pinyinPreview.value = `${initials} (${fullPinyin})`
 }
 
 // 选择入院日期
@@ -223,15 +201,8 @@ async function handleSubmit() {
 
   try {
     // 生成最终拼音（只取首字母）
-    const pinyinArray: string[] = []
-    for (let i = 0; i < formData.value.name.length; i++) {
-      const char = formData.value.name[i]
-      const py = pinyinMap[char]
-      if (py) {
-        pinyinArray.push(py.charAt(0))
-      }
-    }
-    const finalPinyin = pinyinArray.join('')
+    const result = pinyin(formData.value.name, { pattern: 'first', toneType: 'none' })
+    const finalPinyin = result.toLowerCase().replace(/\s+/g, '')
 
     const response = await request({
       url: '/patients',
