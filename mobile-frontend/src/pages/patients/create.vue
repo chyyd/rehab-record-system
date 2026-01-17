@@ -145,10 +145,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { usePatientStore } from '@/stores/patient'
 import { request } from '@/utils/request'
 import { pinyin } from 'pinyin-pro'
 
 const userStore = useUserStore()
+const patientStore = usePatientStore()
 const token = userStore.getToken()
 
 // 表单数据
@@ -329,7 +331,11 @@ async function handleSubmit() {
     if (response.statusCode === 201) {
       const newPatient = response.data
       const medicalRecordNo = newPatient.medicalRecordNo
-      console.log('患者创建成功:', newPatient)
+      console.log('✅ 患者创建成功:', newPatient)
+
+      // 保存待搜索的病历号到store
+      patientStore.setPendingSearch(medicalRecordNo)
+      console.log('📌 已设置待搜索病历号:', medicalRecordNo)
 
       // 显示保存成功提示，然后跳转到患者列表并搜索该患者
       uni.showToast({
@@ -340,14 +346,14 @@ async function handleSubmit() {
 
       // 延迟跳转，确保toast显示
       setTimeout(() => {
-        // 跳转到患者列表（tabBar页面），并传递病历号作为搜索关键词
+        // 跳转到患者列表（tabBar页面）
         uni.switchTab({
           url: '/pages/patients/list',
           success: () => {
-            console.log('跳转到患者列表成功，病历号:', medicalRecordNo)
-            // 注意：由于switchTab不能传递参数，需要使用事件总线或全局状态
-            // 这里使用uni.$emit发送事件，让患者列表页面监听
-            uni.$emit('searchPatient', { query: medicalRecordNo })
+            console.log('✅ 跳转到患者列表成功')
+          },
+          fail: (err) => {
+            console.error('❌ 跳转失败:', err)
           }
         })
       }, 500)

@@ -110,11 +110,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { usePatientStore } from '@/stores/patient'
 import { request } from '@/utils/request'
 
 const userStore = useUserStore()
+const patientStore = usePatientStore()
 
 const searchQuery = ref('')
 const patients = ref<any[]>([])
@@ -136,29 +138,24 @@ function handleUnauthorizedError() {
   userStore.logout()
 }
 
-// 监听搜索患者事件
-function handleSearchPatientEvent(data: any) {
-  console.log('收到搜索患者事件:', data)
-  if (data && data.query) {
-    searchQuery.value = data.query
-    handleSearch()
+onMounted(async () => {
+  await loadPatients()
+
+  // 检查是否有待搜索的患者
+  console.log('检查是否有待搜索内容...')
+  if (patientStore.hasPendingSearch()) {
+    const query = patientStore.getAndClearPendingSearch()
+    console.log('✅ 发现已设置的待搜索内容:', query)
+    searchQuery.value = query
+    await handleSearch()
     uni.showToast({
-      title: `已搜索: ${data.query}`,
+      title: `已搜索: ${query}`,
       icon: 'none',
       duration: 1500
     })
+  } else {
+    console.log('没有待搜索内容')
   }
-}
-
-onMounted(() => {
-  loadPatients()
-  // 监听从其他页面发送的搜索事件
-  uni.$on('searchPatient', handleSearchPatientEvent)
-})
-
-onUnmounted(() => {
-  // 移除事件监听，避免内存泄漏
-  uni.$off('searchPatient', handleSearchPatientEvent)
 })
 
 async function loadPatients() {
