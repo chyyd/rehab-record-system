@@ -112,7 +112,24 @@
 - Node.js >= 18.x
 - npm 或 yarn
 
-### 后端启动
+### 一键启动（推荐）
+
+**Windows 用户：**
+
+双击运行 `start-all-services.bat` 即可一键启动所有服务：
+- 后端服务 (http://localhost:3000)
+- Web管理端 (http://localhost:5173)
+- 手机端 (http://localhost:8080)
+
+停止服务：双击运行 `stop-all-services.bat` 或 `stop-force.bat`
+
+**注意：** 首次运行需要等待依赖安装，启动时间较长。
+
+### 手动启动
+
+如果需要单独启动某个服务，请参考以下步骤。
+
+#### 后端启动
 
 ```bash
 # 进入后端目录
