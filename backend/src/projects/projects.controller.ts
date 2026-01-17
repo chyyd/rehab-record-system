@@ -7,9 +7,10 @@ import {
   Body,
   Param,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -32,6 +33,16 @@ export class ProjectsController {
   @ApiOperation({ summary: '获取当前用户可操作的项目' })
   getMyProjects(@CurrentUser() user: any) {
     return this.projectsService.findByRole(user.role);
+  }
+
+  @Get('recent')
+  @ApiOperation({ summary: '获取最近使用的项目（快捷项目）' })
+  @ApiQuery({ name: 'days', required: false, example: '7' })
+  getRecentProjects(
+    @Query('days') days?: string,
+    @CurrentUser() user?: any
+  ) {
+    return this.projectsService.getRecentProjects(days, user);
   }
 
   @Get(':id')
