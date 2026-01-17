@@ -329,18 +329,17 @@ async function handleSubmit() {
     if (response.statusCode === 201) {
       const newPatientId = response.data.id
 
+      // 显示保存成功提示
       uni.showToast({
         title: '保存成功',
         icon: 'success',
-        duration: 1500
+        duration: 1000
       })
 
-      setTimeout(() => {
-        // 跳转到创建治疗记录页面，传递患者ID
-        uni.redirectTo({
-          url: `/pages/record/create?patientId=${newPatientId}`
-        })
-      }, 1500)
+      // 立即跳转到创建治疗记录页面，传递患者ID
+      uni.redirectTo({
+        url: `/pages/record/create?patientId=${newPatientId}`
+      })
     } else {
       throw new Error(response.data?.message || '保存失败')
     }
