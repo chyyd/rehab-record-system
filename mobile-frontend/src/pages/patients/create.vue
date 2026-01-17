@@ -130,7 +130,7 @@ function generatePinyin() {
 
     // 同时生成完整拼音用于预览
     const fullPinyin = pinyin(name, { pattern: 'pinyin', toneType: 'none' })
-    const fullPinyinStr = fullPinyin.join(' ')
+    const fullPinyinStr = fullPinyin.toLowerCase().replace(/\s+/g, ' ')
 
     pinyinPreview.value = `${pinyinStr} (${fullPinyinStr})`
   } catch (error) {
