@@ -15,6 +15,19 @@
         </view>
 
         <view class="form-item">
+          <text class="form-label">姓名</text>
+          <input
+            class="form-input"
+            type="text"
+            v-model="formData.name"
+            placeholder="请输入患者姓名"
+            placeholder-style="color: #999"
+            @input="generatePinyin"
+          />
+          <text v-if="pinyinPreview" class="pinyin-hint">拼音: {{ pinyinPreview }}</text>
+        </view>
+
+        <view class="form-item">
           <text class="form-label">病历号</text>
           <input
             class="form-input"
@@ -23,64 +36,6 @@
             placeholder="请输入病历号"
             placeholder-style="color: #999"
           />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">姓名</text>
-          <input
-            class="form-input"
-            type="text"
-            v-model="formData.name"
-            placeholder="请输入患者姓名"
-            placeholder-style="color: #999"
-          />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">性别</text>
-          <view class="radio-group">
-            <view
-              class="radio-item"
-              :class="{ active: formData.gender === '男' }"
-              @click="formData.gender = '男'"
-            >
-              <text class="radio-text">男</text>
-            </view>
-            <view
-              class="radio-item"
-              :class="{ active: formData.gender === '女' }"
-              @click="formData.gender = '女'"
-            >
-              <text class="radio-text">女</text>
-            </view>
-          </view>
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">年龄</text>
-          <input
-            class="form-input"
-            type="number"
-            v-model="formData.age"
-            placeholder="请输入年龄"
-            placeholder-style="color: #999"
-          />
-        </view>
-
-        <view class="form-item">
-          <text class="form-label">医保类型</text>
-          <picker
-            mode="selector"
-            :range="insuranceTypes"
-            @change="onInsuranceTypeChange"
-          >
-            <view class="picker-input">
-              <text :class="['picker-text', { placeholder: !formData.insuranceType }]">
-                {{ formData.insuranceType || '请选择医保类型' }}
-              </text>
-              <text class="picker-arrow">›</text>
-            </view>
-          </picker>
         </view>
       </view>
 
@@ -92,12 +47,12 @@
         </view>
 
         <view class="form-item">
-          <text class="form-label">主管医师</text>
+          <text class="form-label">主管医生</text>
           <input
             class="form-input"
             type="text"
             v-model="formData.doctor"
-            placeholder="请输入主管医师"
+            placeholder="请输入主管医生"
             placeholder-style="color: #999"
           />
         </view>
@@ -140,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { request } from '@/utils/request'
 
@@ -149,22 +104,61 @@ const token = userStore.getToken()
 
 // 表单数据
 const formData = ref({
-  medicalRecordNo: '',
   name: '',
-  gender: '男',
-  age: '',
-  insuranceType: '',
+  medicalRecordNo: '',
   doctor: '',
   admissionDate: '',
   diagnosis: '',
 })
 
-// 医保类型选项
-const insuranceTypes = ref(['城镇职工医保', '城乡居民医保', '新农合', '自费', '其他'])
+// 拼音预览
+const pinyinPreview = ref('')
 
-// 选择医保类型
-function onInsuranceTypeChange(e: any) {
-  formData.value.insuranceType = insuranceTypes.value[e.detail.value]
+// 简单的汉字转拼音映射（常用字）
+const pinyinMap: Record<string, string> = {
+  // 常用姓氏
+  '王': 'wang', '李': 'li', '张': 'zhang', '刘': 'liu', '陈': 'chen',
+  '杨': 'yang', '黄': 'huang', '赵': 'zhao', '吴': 'wu', '周': 'zhou',
+  '徐': 'xu', '孙': 'sun', '马': 'ma', '朱': 'zhu', '胡': 'hu',
+  '郭': 'guo', '何': 'he', '林': 'lin', '罗': 'luo', '高': 'gao',
+  // 常用名字
+  '建': 'jian', '国': 'guo', '明': 'ming', '华': 'hua', '文': 'wen',
+  '平': 'ping', '志': 'zhi', '伟': 'wei', '芳': 'fang', '敏': 'min',
+  '静': 'jing', '丽': 'li', '军': 'jun', '强': 'qiang', '磊': 'lei',
+  '洋': 'yang', '勇': 'yong', '艳': 'yan', '杰': 'jie', '涛': 'tao',
+  '明': 'ming', '超': 'chao', '秀': 'xiu', '霞': 'xia', '海': 'hai',
+  '鑫': 'xin', '德': 'de', '成': 'cheng', '晓': 'xiao', '波': 'bo',
+  '武': 'wu', '婷': 'ting', '桂': 'gui', '英': 'ying', '发': 'fa',
+  '刚': 'gang', '小': 'xiao', '红': 'hong', '梅': 'mei', '生': 'sheng',
+  '大': 'da', '永': 'yong', '林': 'lin', '志': 'zhi', '金': 'jin',
+  '玉': 'yu', '美': 'mei', '才': 'cai', '学': 'xue', '友': 'you',
+  '荣': 'rong', '祥': 'xiang', '光': 'guang', '春': 'chun', '宝': 'bao',
+  '兰': 'lan', '东': 'dong', '山': 'shan', '民': 'min', '秋': 'qiu'
+}
+
+// 生成拼音
+function generatePinyin() {
+  const name = formData.value.name.trim()
+  if (!name) {
+    pinyinPreview.value = ''
+    return
+  }
+
+  const pinyinArray: string[] = []
+  for (let i = 0; i < name.length; i++) {
+    const char = name[i]
+    const py = pinyinMap[char] || ''
+    if (py) {
+      pinyinArray.push(py)
+    }
+  }
+
+  // 取每个字的拼音首字母
+  const initials = pinyinArray.map(py => py.charAt(0)).join('')
+
+  // 完整拼音（空格分隔）和首字母
+  const fullPinyin = pinyinArray.join(' ')
+  pinyinPreview.value = `${initials} (${fullPinyin})`
 }
 
 // 选择入院日期
@@ -174,14 +168,6 @@ function onAdmissionDateChange(e: any) {
 
 // 验证表单
 function validateForm(): boolean {
-  if (!formData.value.medicalRecordNo.trim()) {
-    uni.showToast({
-      title: '请输入病历号',
-      icon: 'none'
-    })
-    return false
-  }
-
   if (!formData.value.name.trim()) {
     uni.showToast({
       title: '请输入患者姓名',
@@ -190,17 +176,9 @@ function validateForm(): boolean {
     return false
   }
 
-  if (!formData.value.age) {
+  if (!formData.value.medicalRecordNo.trim()) {
     uni.showToast({
-      title: '请输入年龄',
-      icon: 'none'
-    })
-    return false
-  }
-
-  if (!formData.value.insuranceType) {
-    uni.showToast({
-      title: '请选择医保类型',
+      title: '请输入病历号',
       icon: 'none'
     })
     return false
@@ -208,7 +186,7 @@ function validateForm(): boolean {
 
   if (!formData.value.doctor.trim()) {
     uni.showToast({
-      title: '请输入主管医师',
+      title: '请输入主管医生',
       icon: 'none'
     })
     return false
@@ -244,6 +222,17 @@ async function handleSubmit() {
   })
 
   try {
+    // 生成最终拼音（只取首字母）
+    const pinyinArray: string[] = []
+    for (let i = 0; i < formData.value.name.length; i++) {
+      const char = formData.value.name[i]
+      const py = pinyinMap[char]
+      if (py) {
+        pinyinArray.push(py.charAt(0))
+      }
+    }
+    const finalPinyin = pinyinArray.join('')
+
     const response = await request({
       url: '/patients',
       method: 'POST',
@@ -251,7 +240,15 @@ async function handleSubmit() {
         'Authorization': `Bearer ${token}`
       },
       data: {
-        ...formData.value,
+        name: formData.value.name,
+        medicalRecordNo: formData.value.medicalRecordNo,
+        doctor: formData.value.doctor,
+        admissionDate: formData.value.admissionDate,
+        diagnosis: formData.value.diagnosis,
+        pinyin: finalPinyin, // 自动生成的拼音
+        gender: '男', // 默认值
+        age: 0, // 默认值
+        insuranceType: '自费', // 默认值
         needsAssessment: false // 手机端新增患者默认不需要评估
       }
     })
@@ -387,6 +384,14 @@ $bg-page: #f8fafc;
     }
   }
 
+  .pinyin-hint {
+    display: block;
+    margin-top: 12rpx;
+    font-size: 24rpx;
+    color: #0ea5e9;
+    font-weight: 500;
+  }
+
   .form-textarea {
     width: 100%;
     min-height: 160rpx;
@@ -427,38 +432,6 @@ $bg-page: #f8fafc;
       font-size: 40rpx;
       color: #94a3b8;
       font-weight: 300;
-    }
-  }
-
-  .radio-group {
-    display: flex;
-    gap: 20rpx;
-
-    .radio-item {
-      flex: 1;
-      height: 80rpx;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: #f8fafc;
-      border: 2rpx solid #e2e8f0;
-      border-radius: 16rpx;
-      transition: all 0.2s;
-
-      &.active {
-        background: linear-gradient(135deg, $medical-blue 0%, $primary-dark 100%);
-        border-color: $medical-blue;
-
-        .radio-text {
-          color: #fff;
-        }
-      }
-
-      .radio-text {
-        font-size: 28rpx;
-        color: #475569;
-        font-weight: 500;
-      }
     }
   }
 }
