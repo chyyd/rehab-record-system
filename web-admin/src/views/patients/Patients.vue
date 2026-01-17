@@ -61,7 +61,7 @@
             {{ row.dischargeDate ? formatDate(row.dischargeDate) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="480" fixed="right">
+        <el-table-column label="操作" width="580" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
               <el-button type="primary" size="small" @click="handleEdit(row)">
@@ -101,6 +101,14 @@
                 @click="handleDischarge(row)"
               >
                 出院
+              </el-button>
+              <el-button
+                v-if="row.dischargeDate && isAdmin"
+                type="warning"
+                size="small"
+                @click="handleRevokeDischarge(row)"
+              >
+                撤销出院
               </el-button>
             </div>
           </template>
@@ -274,9 +282,14 @@ import request from '@/utils/request'
 import dayjs from 'dayjs'
 import { pinyin } from 'pinyin-pro'
 import AssessmentDialog from '@/components/AssessmentDialog.vue'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
+
+// 判断是否是管理员
+const isAdmin = computed(() => userStore.hasRole('admin'))
 
 const loading = ref(false)
 const searchQuery = ref('')
@@ -586,6 +599,33 @@ async function handleConfirmDischarge() {
       }
     }
   })
+}
+
+// 撤销出院
+async function handleRevokeDischarge(row: any) {
+  try {
+    await ElMessageBox.confirm(
+      `确定要撤销患者 ${row.name} 的出院状态吗？\n\n撤销后患者将重新回到在院患者列表，可以继续进行治疗。`,
+      '撤销出院确认',
+      {
+        confirmButtonText: '确认撤销',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+
+    // 调用API清空出院日期
+    await request.put(`/patients/${row.id}`, {
+      dischargeDate: null
+    })
+
+    ElMessage.success('撤销出院成功')
+    await loadData()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '撤销出院失败')
+    }
+  }
 }
 
 async function handleSubmit() {
