@@ -327,6 +327,8 @@ async function handleSubmit() {
     uni.hideLoading()
 
     if (response.statusCode === 201) {
+      const newPatientId = response.data.id
+
       uni.showToast({
         title: '保存成功',
         icon: 'success',
@@ -334,7 +336,10 @@ async function handleSubmit() {
       })
 
       setTimeout(() => {
-        uni.navigateBack()
+        // 跳转到创建治疗记录页面，传递患者ID
+        uni.redirectTo({
+          url: `/pages/record/create?patientId=${newPatientId}`
+        })
       }, 1500)
     } else {
       throw new Error(response.data?.message || '保存失败')
@@ -352,7 +357,10 @@ async function handleSubmit() {
 }
 
 function goBack() {
-  uni.navigateBack()
+  // 跳转到患者列表页面
+  uni.switchTab({
+    url: '/pages/patients/list'
+  })
 }
 </script>
 
