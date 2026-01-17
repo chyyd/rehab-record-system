@@ -155,62 +155,75 @@ async function loadProjects() {
 }
 
 async function loadRecentProjects() {
-  const CACHE_KEY = 'recentProjectsCache'
-  const CACHE_DATE_KEY = 'recentProjectsCacheDate'
-  const today = new Date().toDateString()
-
-  // 检查缓存是否过期（每天0点更新）
-  try {
-    const cachedDate = uni.getStorageSync(CACHE_DATE_KEY)
-    const shouldRefresh = !cachedDate || cachedDate !== today
-
-    if (!shouldRefresh && recentProjectCache.value) {
-      // 使用缓存数据
-      recentProjects.value = recentProjectCache.value
-      console.log('使用快捷项目缓存')
-      return
-    }
-  } catch (e) {
-    console.log('读取缓存失败，重新获取')
+  // 如果没有患者ID，不加载快捷项目
+  if (!patientId.value) {
+    recentProjects.value = []
+    return
   }
 
-  // 从服务器获取最新数据
+  console.log('加载患者最近使用的项目，患者ID:', patientId.value)
+
   try {
+    // 计算最近7天的日期范围
+    const today = new Date()
+    const sevenDaysAgo = new Date(today)
+    sevenDaysAgo.setDate(today.getDate() - 7)
+
+    const startDate = sevenDaysAgo.toISOString().split('T')[0] // YYYY-MM-DD
+    const endDate = today.toISOString().split('T')[0]
+
+    console.log('查询日期范围:', startDate, '至', endDate)
+
+    // 获取该患者最近7天的治疗记录
     const response = await request({
-      url: '/projects/recent?days=7',
+      url: `/records?patientId=${patientId.value}&startDate=${startDate}&endDate=${endDate}`,
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
       }
     })
 
-    if (response.statusCode === 200 && response.data?.recentProjects) {
-      recentProjects.value = response.data.recentProjects
-      recentProjectCache.value = response.data.recentProjects
+    if (response.statusCode === 200 && response.data && response.data.length > 0) {
+      console.log('患者最近7天治疗记录:', response.data.length)
 
-      // 保存缓存和日期
-      try {
-        uni.setStorageSync(CACHE_KEY, response.data.recentProjects)
-        uni.setStorageSync(CACHE_DATE_KEY, today)
-      } catch (e) {
-        console.log('保存缓存失败:', e)
-      }
+      // 统计每个项目的使用次数
+      const projectStats = new Map<number, { count: number; name: string; code: string }>()
 
-      console.log('快捷项目已更新:', response.data.recentProjects.length)
+      response.data.forEach((record: any) => {
+        const projectId = record.project?.id
+        if (projectId) {
+          const existing = projectStats.get(projectId)
+          if (existing) {
+            existing.count++
+          } else {
+            projectStats.set(projectId, {
+              count: 1,
+              name: record.project?.name || '未知项目',
+              code: record.project?.code || ''
+            })
+          }
+        }
+      })
+
+      // 转换为数组并按使用次数排序
+      const sortedProjects = Array.from(projectStats.entries())
+        .map(([projectId, data]) => ({
+          projectId,
+          projectName: data.name,
+          count: data.count
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 6) // 只取前6个
+
+      recentProjects.value = sortedProjects
+      console.log('患者常用项目统计:', sortedProjects)
+    } else {
+      recentProjects.value = []
+      console.log('该患者最近7天无治疗记录')
     }
   } catch (error) {
-    console.error('加载快捷项目失败:', error)
-
-    // 如果请求失败，尝试使用本地缓存
-    try {
-      const cached = uni.getStorageSync(CACHE_KEY)
-      if (cached && cached.length > 0) {
-        recentProjects.value = cached
-        console.log('使用本地缓存快捷项目')
-      }
-    } catch (e) {
-      console.log('读取本地缓存也失败')
-    }
+    console.error('加载患者最近项目失败:', error)
+    recentProjects.value = []
   }
 }
 
