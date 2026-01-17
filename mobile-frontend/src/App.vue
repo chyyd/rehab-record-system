@@ -7,7 +7,9 @@
 <script setup lang="ts">
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { ref } from 'vue'
+import { useUserStore } from '@/stores/user'
 
+const userStore = useUserStore()
 const statusBarHeight = ref(0)
 
 // 检测是否是H5环境
@@ -24,6 +26,9 @@ onLaunch(() => {
     console.error('获取系统信息失败:', e)
     statusBarHeight.value = 0
   }
+
+  // 初始化用户store（从本地存储恢复登录状态）
+  userStore.init()
 
   // 检查登录状态 - 延迟执行以避免页面冲突
   setTimeout(() => {
@@ -53,22 +58,26 @@ function checkLoginStatus() {
       return
     }
 
-    // 获取token
-    let token: string = ''
-    if (isH5) {
-      token = localStorage.getItem('token') || ''
-    } else {
-      token = uni.getStorageSync('token')
-    }
+    // 使用userStore检查登录状态
+    const isLoggedIn = userStore.isLoggedIn()
+    console.log('登录状态:', isLoggedIn ? '已登录' : '未登录')
 
-    console.log('登录状态:', token ? '已登录' : '未登录')
-
-    if (!token) {
+    if (!isLoggedIn) {
       console.log('未登录，跳转到登录页')
       // 未登录，跳转到登录页
       uni.reLaunch({
         url: '/pages/login/login'
       })
+    } else {
+      console.log('已登录，恢复用户信息')
+      // 如果有token但没有用户信息，尝试获取
+      if (!userStore.userInfo) {
+        userStore.getUserInfo().catch(err => {
+          console.error('获取用户信息失败:', err)
+          // 如果获取用户信息失败，可能token已过期，需要重新登录
+          userStore.logout()
+        })
+      }
     }
   } catch (e) {
     console.error('检查登录状态失败:', e)

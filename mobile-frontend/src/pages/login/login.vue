@@ -162,15 +162,15 @@ async function handleLogin() {
       icon: 'success'
     })
 
-    // 跳转到首页
+    // 跳转到患者列表（首页）
     setTimeout(() => {
-      console.log('跳转到首页')
+      console.log('跳转到患者列表')
       if (isH5) {
         // H5环境使用location.hash
-        window.location.hash = '#/pages/home/home'
+        window.location.hash = '#/pages/patients/list'
       } else {
         uni.switchTab({
-          url: '/pages/home/home'
+          url: '/pages/patients/list'
         })
       }
     }, 500)
