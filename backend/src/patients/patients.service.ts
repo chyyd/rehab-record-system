@@ -232,4 +232,11 @@ export class PatientsService {
       },
     });
   }
+
+  async getPatientTodayTasks(patientId: number) {
+    // 获取患者今日治疗任务
+    // 注意：目前治疗处方功能尚未实现，返回空数组
+    // TODO: 将来需要实现治疗处方功能后，这里返回今日待做的治疗项目
+    return [];
+  }
 }

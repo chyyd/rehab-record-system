@@ -45,6 +45,12 @@ export class PatientsController {
     return this.patientsService.findOne(+id);
   }
 
+  @Get(':id/today')
+  @ApiOperation({ summary: '获取患者今日治疗任务' })
+  getPatientTodayTasks(@Param('id') id: string) {
+    return this.patientsService.getPatientTodayTasks(+id);
+  }
+
   @Post()
   @ApiOperation({ summary: '创建患者' })
   create(@Body() createPatientDto: any) {
