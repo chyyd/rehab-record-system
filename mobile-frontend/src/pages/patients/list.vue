@@ -139,6 +139,11 @@ function handleUnauthorizedError() {
 }
 
 onMounted(async () => {
+  console.log('🟢 ========== 患者列表页面 onMounted ==========')
+  console.log('patientStore:', patientStore)
+  console.log('patientStore.hasPendingSearch():', patientStore.hasPendingSearch())
+  console.log('patientStore.pendingSearchQuery:', patientStore.pendingSearchQuery)
+
   await loadPatients()
 
   // 检查是否有待搜索的患者
@@ -154,7 +159,7 @@ onMounted(async () => {
       duration: 1500
     })
   } else {
-    console.log('没有待搜索内容')
+    console.log('❌ 没有待搜索内容')
   }
 })
 

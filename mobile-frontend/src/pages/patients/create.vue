@@ -293,6 +293,10 @@ function validateForm(): boolean {
 
 // 提交表单
 async function handleSubmit() {
+  console.log('🔵 ========== 开始提交表单 ==========')
+  console.log('patientStore 是否存在:', !!patientStore)
+  console.log('patientStore 方法:', typeof patientStore.setPendingSearch)
+
   if (!validateForm()) {
     return
   }
