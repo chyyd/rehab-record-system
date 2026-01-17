@@ -1,0 +1,11 @@
+{
+  "name": "rehab-system-tests",
+  "version": "1.0.0",
+  "description": "康复治疗记录系统 - API测试脚本",
+  "scripts": {
+    "test": "node test-api.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
