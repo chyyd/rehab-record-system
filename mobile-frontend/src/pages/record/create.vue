@@ -14,7 +14,8 @@
     <!-- 🔥 最近使用（快捷方式） -->
     <view class="section" v-if="recentProjects.length > 0">
       <view class="section-title">
-        <text>🔥 最近使用</text>
+        <text class="title-icon">⚡</text>
+        <text>最近使用</text>
       </view>
 
       <view class="recent-projects-grid">
@@ -23,10 +24,10 @@
           :class="{ active: selectedProject?.id === project.projectId }"
           v-for="project in recentProjects"
           :key="project.projectId"
-          @click="selectProjectById(project.projectId)"
+          @click="quickSelectAndStart(project)"
         >
           <view class="recent-project-icon">
-            <text class="icon-fire">🔥</text>
+            <text class="icon-fire">⚡</text>
           </view>
           <view class="recent-project-info">
             <text class="recent-project-name">{{ project.projectName }}</text>
@@ -53,7 +54,7 @@
           :class="{ active: selectedProject?.id === project.id }"
           v-for="project in projects"
           :key="project.id"
-          @click="selectProject(project)"
+          @click="selectAndStartTreatment(project)"
         >
           <text class="project-name">{{ project.name }}</text>
           <text class="project-duration">{{ project.defaultDuration }}分钟</text>
@@ -62,29 +63,6 @@
 
       <view class="empty-projects" v-else>
         <text>暂无可操作项目</text>
-      </view>
-    </view>
-
-    <!-- 治疗时间 -->
-    <view class="section" v-if="selectedProject">
-      <view class="section-title">
-        <text class="required">*</text>
-        <text>治疗信息</text>
-      </view>
-
-      <view class="time-display">
-        <view class="time-item">
-          <text class="time-label">治疗项目</text>
-          <text class="time-value">{{ selectedProject.name }}</text>
-        </view>
-        <view class="time-item">
-          <text class="time-label">预计时长</text>
-          <text class="time-value">{{ selectedProject.defaultDuration }}分钟</text>
-        </view>
-      </view>
-
-      <view class="time-actions">
-        <button class="time-btn primary" @click="startTreatment">开始治疗</button>
       </view>
     </view>
 
@@ -190,13 +168,10 @@ async function loadRecentProjects() {
   // 从服务器获取最新数据
   try {
     const response = await request({
-      url: '/projects/recent',
+      url: '/projects/recent?days=7',
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
-      },
-      data: {
-        days: '7'
       }
     })
 
@@ -241,6 +216,12 @@ function selectProject(project: any) {
   selectedProject.value = project
 }
 
+// 选择项目并直接开始治疗
+async function selectAndStartTreatment(project: any) {
+  selectedProject.value = project
+  await startTreatment()
+}
+
 function selectProjectById(projectId: number) {
   const project = projects.value.find((p) => p.id === projectId)
   if (project) {
@@ -256,6 +237,25 @@ function selectProjectById(projectId: number) {
       }
     }
   }
+}
+
+// 快捷选择项目并直接开始治疗
+async function quickSelectAndStart(project: any) {
+  // 先设置选中的项目
+  await selectProjectById(project.projectId)
+
+  // 确保从完整项目列表中获取正确的项目信息（包括defaultDuration）
+  if (projects.value.length === 0) {
+    await loadProjects()
+  }
+
+  const fullProject = projects.value.find((p) => p.id === project.projectId)
+  if (fullProject) {
+    selectedProject.value = fullProject
+  }
+
+  // 直接开始治疗（验证时间冲突并显示签名）
+  await startTreatment()
 }
 
 async function startTreatment() {
@@ -545,6 +545,25 @@ $bg-page: #f8fafc;
     margin-bottom: 24rpx;
     position: relative;
     padding-left: 20rpx;
+    display: flex;
+    align-items: center;
+    gap: 8rpx;
+
+    .title-icon {
+      font-size: 28rpx;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.8;
+        transform: scale(1.1);
+      }
+    }
 
     &::before {
       content: '';
@@ -737,36 +756,61 @@ $bg-page: #f8fafc;
   display: flex;
   align-items: center;
   padding: 24rpx;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: linear-gradient(135deg, $sky-light 0%, rgba(224, 242, 254, 0.7) 100%);
   border-radius: 20rpx;
-  border: 3rpx solid transparent;
+  border: 3rpx solid rgba(14, 165, 233, 0.15);
   transition: all 0.3s ease;
-  box-shadow: 0 4rpx 12rpx rgba(251, 191, 36, 0.2);
+  box-shadow: 0 4rpx 16rpx rgba(14, 165, 233, 0.18);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+
+  // 添加微妙的渐变光泽效果
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, transparent 100%);
+    pointer-events: none;
+  }
 
   &.active {
-    background: linear-gradient(135deg, $medical-blue 0%, $primary-dark 100%);
+    background: linear-gradient(135deg, $medical-blue 0%, $medical-cyan 100%);
     border-color: $medical-blue;
-    box-shadow: 0 6rpx 20rpx rgba(14, 165, 233, 0.4);
+    box-shadow: 0 8rpx 24rpx rgba(14, 165, 233, 0.35);
+    transform: translateY(-2rpx);
 
     .recent-project-name,
     .recent-project-count,
     .icon-fire {
       color: #fff;
     }
+
+    .recent-project-icon {
+      background: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+    }
   }
 
   .recent-project-icon {
-    width: 80rpx;
-    height: 80rpx;
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 16rpx;
+    width: 88rpx;
+    height: 88rpx;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
+    border-radius: 20rpx;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 20rpx;
+    margin-right: 24rpx;
+    box-shadow: 0 4rpx 12rpx rgba(14, 165, 233, 0.15);
+    position: relative;
+    z-index: 1;
 
     .icon-fire {
-      font-size: 40rpx;
+      font-size: 44rpx;
+      filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
     }
   }
 
@@ -774,39 +818,51 @@ $bg-page: #f8fafc;
     flex: 1;
     display: flex;
     flex-direction: column;
+    position: relative;
+    z-index: 1;
 
     .recent-project-name {
-      font-size: 30rpx;
-      font-weight: 600;
-      color: #1e293b;
-      margin-bottom: 6rpx;
+      font-size: 32rpx;
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 8rpx;
+      letter-spacing: 0.5rpx;
     }
 
     .recent-project-count {
       font-size: 24rpx;
-      color: #64748b;
+      color: #0284c7;
+      font-weight: 500;
+      background: rgba(2, 132, 199, 0.1);
+      padding: 4rpx 12rpx;
+      border-radius: 12rpx;
+      align-self: flex-start;
     }
   }
 }
 
 .expand-all-btn {
-  margin-top: 20rpx;
-  padding: 20rpx;
-  background: linear-gradient(135deg, $sky-light 0%, rgba(224, 242, 254, 0.5) 100%);
-  border-radius: 16rpx;
+  margin-top: 24rpx;
+  padding: 24rpx;
+  background: linear-gradient(135deg, $sky-light 0%, rgba(224, 242, 254, 0.6) 100%);
+  border-radius: 20rpx;
   text-align: center;
   border: 2rpx dashed $medical-blue;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2rpx 8rpx rgba(14, 165, 233, 0.1);
+  cursor: pointer;
 
   &:active {
-    opacity: 0.8;
+    opacity: 0.85;
     transform: scale(0.98);
+    box-shadow: 0 1rpx 4rpx rgba(14, 165, 233, 0.15);
   }
 
   .expand-text {
-    font-size: 26rpx;
+    font-size: 28rpx;
     color: $medical-blue;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.5rpx;
   }
 }
 </style>
