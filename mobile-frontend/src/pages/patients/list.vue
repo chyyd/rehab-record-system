@@ -110,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { request } from '@/utils/request'
 
@@ -136,8 +136,29 @@ function handleUnauthorizedError() {
   userStore.logout()
 }
 
+// 监听搜索患者事件
+function handleSearchPatientEvent(data: any) {
+  console.log('收到搜索患者事件:', data)
+  if (data && data.query) {
+    searchQuery.value = data.query
+    handleSearch()
+    uni.showToast({
+      title: `已搜索: ${data.query}`,
+      icon: 'none',
+      duration: 1500
+    })
+  }
+}
+
 onMounted(() => {
   loadPatients()
+  // 监听从其他页面发送的搜索事件
+  uni.$on('searchPatient', handleSearchPatientEvent)
+})
+
+onUnmounted(() => {
+  // 移除事件监听，避免内存泄漏
+  uni.$off('searchPatient', handleSearchPatientEvent)
 })
 
 async function loadPatients() {

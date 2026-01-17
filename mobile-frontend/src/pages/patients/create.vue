@@ -327,11 +327,11 @@ async function handleSubmit() {
     uni.hideLoading()
 
     if (response.statusCode === 201) {
-      const newPatientId = response.data.id
-      console.log('患者创建成功，ID:', newPatientId)
-      console.log('准备跳转到治疗记录页面...')
+      const newPatient = response.data
+      const medicalRecordNo = newPatient.medicalRecordNo
+      console.log('患者创建成功:', newPatient)
 
-      // 显示保存成功提示，然后跳转
+      // 显示保存成功提示，然后跳转到患者列表并搜索该患者
       uni.showToast({
         title: '保存成功',
         icon: 'success',
@@ -340,28 +340,14 @@ async function handleSubmit() {
 
       // 延迟跳转，确保toast显示
       setTimeout(() => {
-        const targetUrl = `/pages/record/create?patientId=${newPatientId}`
-        console.log('执行跳转，目标URL:', targetUrl)
-
-        // 使用reLaunch清除页面栈并跳转，避免tabBar页面干扰
-        uni.reLaunch({
-          url: targetUrl,
+        // 跳转到患者列表（tabBar页面），并传递病历号作为搜索关键词
+        uni.switchTab({
+          url: '/pages/patients/list',
           success: () => {
-            console.log('✅ 跳转到治疗记录页面成功，患者ID:', newPatientId)
-          },
-          fail: (err) => {
-            console.error('❌ reLaunch跳转失败:', err)
-            console.log('尝试使用navigateTo...')
-            // 如果reLaunch失败，尝试使用navigateTo
-            uni.navigateTo({
-              url: targetUrl,
-              success: () => {
-                console.log('✅ navigateTo跳转成功')
-              },
-              fail: (err2) => {
-                console.error('❌ navigateTo也失败:', err2)
-              }
-            })
+            console.log('跳转到患者列表成功，病历号:', medicalRecordNo)
+            // 注意：由于switchTab不能传递参数，需要使用事件总线或全局状态
+            // 这里使用uni.$emit发送事件，让患者列表页面监听
+            uni.$emit('searchPatient', { query: medicalRecordNo })
           }
         })
       }, 500)
