@@ -11,7 +11,7 @@ import {
 import { PatientsService } from './patients.service';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { Query } from '@nestjs/common';
+import { Query, Patch } from '@nestjs/common';
 
 @ApiTags('patients')
 @Controller('patients')
@@ -55,6 +55,12 @@ export class PatientsController {
   @ApiOperation({ summary: '更新患者' })
   update(@Param('id') id: string, @Body() updatePatientDto: any) {
     return this.patientsService.update(+id, updatePatientDto);
+  }
+
+  @Patch(':id/discharge')
+  @ApiOperation({ summary: '患者出院' })
+  discharge(@Param('id') id: string) {
+    return this.patientsService.discharge(+id);
   }
 
   @Delete(':id')

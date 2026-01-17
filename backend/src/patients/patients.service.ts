@@ -124,6 +124,10 @@ export class PatientsService {
       dischargeDate: dataWithoutId.dischargeDate
         ? new Date(dataWithoutId.dischargeDate + 'T00:00:00.000Z')
         : null,
+      // 默认设置为不需要评估（手机端新增患者时）
+      needsAssessment: dataWithoutId.needsAssessment !== undefined
+        ? dataWithoutId.needsAssessment
+        : false,
     };
 
     return this.prisma.patient.create({
@@ -156,6 +160,32 @@ export class PatientsService {
       where: { id },
       data: processedData,
     });
+  }
+
+  async discharge(id: number) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id },
+    });
+
+    if (!patient) {
+      throw new NotFoundException('患者不存在');
+    }
+
+    // 设置出院日期为今天
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const updatedPatient = await this.prisma.patient.update({
+      where: { id },
+      data: {
+        dischargeDate: today,
+      },
+    });
+
+    return {
+      message: '患者出院成功',
+      patient: updatedPatient,
+    };
   }
 
   async remove(id: number) {

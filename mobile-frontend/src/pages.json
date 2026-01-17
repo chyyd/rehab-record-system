@@ -32,6 +32,13 @@
       }
     },
     {
+      "path": "pages/patients/create",
+      "style": {
+        "navigationBarTitleText": "新增患者",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/record/create",
       "style": {
         "navigationBarTitleText": "创建治疗记录"

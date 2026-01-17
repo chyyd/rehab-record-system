@@ -45,6 +45,10 @@
         />
         <text v-if="searchQuery" class="iconfont icon-clear" @click="clearSearch"></text>
       </view>
+      <button class="add-patient-btn" @click="goToAddPatient">
+        <text class="add-icon">+</text>
+        <text class="add-text">新增</text>
+      </button>
     </view>
 
     <!-- 患者列表 -->
@@ -294,6 +298,12 @@ function viewRecordDetail(record: any) {
     url: `/pages/record/detail?id=${record.id}`
   })
 }
+
+function goToAddPatient() {
+  uni.navigateTo({
+    url: '/pages/patients/create'
+  })
+}
 </script>
 
 <style lang="scss" scoped>
@@ -443,8 +453,12 @@ $bg-page: #f8fafc;
   padding: 24rpx;
   background: linear-gradient(135deg, $medical-blue 0%, $medical-cyan 100%);
   box-shadow: 0 4rpx 16rpx rgba(14, 165, 233, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
 
   .search-input {
+    flex: 1;
     display: flex;
     align-items: center;
     background-color: rgba(255, 255, 255, 0.95);
@@ -471,6 +485,42 @@ $bg-page: #f8fafc;
       margin-left: 16rpx;
       margin-right: 0;
       color: #94a3b8;
+    }
+  }
+
+  .add-patient-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100rpx;
+    height: 80rpx;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10rpx);
+    border-radius: 20rpx;
+    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+    padding: 0;
+    border: none;
+    transition: all 0.2s;
+
+    &:active {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+
+    .add-icon {
+      font-size: 32rpx;
+      color: $medical-blue;
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 4rpx;
+    }
+
+    .add-text {
+      font-size: 20rpx;
+      color: $medical-blue;
+      font-weight: 500;
+      line-height: 1;
     }
   }
 }

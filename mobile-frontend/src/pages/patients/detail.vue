@@ -76,6 +76,13 @@
       <!-- 操作按钮 -->
       <view class="actions">
         <button class="action-btn primary" @click="createRecord">创建治疗记录</button>
+        <button
+          v-if="!patient.dischargeDate"
+          class="action-btn danger"
+          @click="handleDischarge"
+        >
+          患者出院
+        </button>
         <button class="action-btn secondary" @click="goBack">返回</button>
       </view>
     </view>
@@ -170,6 +177,63 @@ function createRecord() {
   uni.navigateTo({
     url: `/pages/record/create?patientId=${patientId.value}`
   })
+}
+
+async function handleDischarge() {
+  // 二次确认弹窗
+  uni.showModal({
+    title: '确认出院',
+    content: `确定要为患者 ${patient.value.name} 办理出院吗？\n\n出院后患者将不再显示在待治疗列表中。`,
+    confirmText: '确认出院',
+    cancelText: '取消',
+    confirmColor: '#ef4444',
+    success: async (res) => {
+      if (res.confirm) {
+        // 用户确认，执行出院
+        await dischargePatient()
+      }
+    }
+  })
+}
+
+async function dischargePatient() {
+  uni.showLoading({
+    title: '处理中...'
+  })
+
+  try {
+    const response = await request({
+      url: `/patients/${patientId.value}/discharge`,
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${userStore.getToken()}`
+      }
+    })
+
+    uni.hideLoading()
+
+    if (response.statusCode === 200) {
+      uni.showToast({
+        title: '出院成功',
+        icon: 'success',
+        duration: 1500
+      })
+
+      // 刷新患者信息
+      await loadPatient()
+    } else {
+      throw new Error(response.data?.message || '出院失败')
+    }
+  } catch (error: any) {
+    console.error('出院失败:', error)
+    uni.hideLoading()
+
+    uni.showToast({
+      title: error.message || '出院失败',
+      icon: 'none',
+      duration: 2000
+    })
+  }
 }
 
 function goBack() {
@@ -336,6 +400,12 @@ $bg-page: #f8fafc;
       background: linear-gradient(135deg, $medical-blue 0%, $primary-dark 100%);
       color: #fff;
       box-shadow: 0 8rpx 24rpx rgba(14, 165, 233, 0.3);
+    }
+
+    &.danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: #fff;
+      box-shadow: 0 8rpx 24rpx rgba(239, 68, 68, 0.3);
     }
 
     &.secondary {
