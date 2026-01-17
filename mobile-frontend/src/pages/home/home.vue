@@ -84,6 +84,15 @@ async function loadTodayRecords() {
     return
   }
 
+  // 获取当前登录用户的ID
+  const currentUserId = userStore.userInfo?.id
+  if (!currentUserId) {
+    console.error('无法获取当前用户ID')
+    return
+  }
+
+  console.log('👤 加载今日治疗记录，当前用户ID:', currentUserId)
+
   try {
     // 获取今天的日期范围
     const today = new Date()
@@ -91,7 +100,7 @@ async function loadTodayRecords() {
     const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString()
 
     const response = await request({
-      url: `/records?startDate=${startOfDay}&endDate=${endOfDay}`,
+      url: `/records?startDate=${startOfDay}&endDate=${endOfDay}&therapistId=${currentUserId}`,
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -100,6 +109,7 @@ async function loadTodayRecords() {
 
     if (response.statusCode === 200) {
       todayRecords.value = response.data
+      console.log('✅ 今日治疗记录加载成功:', response.data.length, '条')
     } else if (response.statusCode === 401) {
       handleUnauthorizedError()
     }

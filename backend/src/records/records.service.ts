@@ -41,7 +41,9 @@ export class RecordsService {
         },
         project: {
           select: {
+            id: true,
             name: true,
+            code: true,
             category: true,
           },
         },
@@ -84,7 +86,6 @@ export class RecordsService {
   async create(data: any, therapistId: number) {
     // 处理日期格式
     let startTime: Date;
-    let endTime: Date;
     let treatmentDate: Date;
 
     if (data.startTime && typeof data.startTime === 'string') {
@@ -101,22 +102,10 @@ export class RecordsService {
       startTime = data.startTime || new Date();
     }
 
-    if (data.endTime && typeof data.endTime === 'string') {
-      if (data.endTime.includes('T')) {
-        endTime = new Date(data.endTime);
-      } else if (data.treatmentDate && data.endTime) {
-        endTime = new Date(`${data.treatmentDate}T${data.endTime}`);
-      } else {
-        endTime = new Date();
-      }
-    } else {
-      endTime = data.endTime || new Date();
-    }
-
     // treatmentDate 从 startTime 提取日期部分
     treatmentDate = startTime;
 
-    // 计算时长（如果没有提供）
+    // 🔑 关键修改：先获取治疗时长
     let durationMinutes = data.durationMinutes;
     let extraSeconds = data.extraSeconds || 0;
 
@@ -130,10 +119,18 @@ export class RecordsService {
       }
 
       // 使用项目默认时长
-      const diffMs = endTime.getTime() - startTime.getTime();
-      durationMinutes = Math.floor(diffMs / 60000) || project.defaultDuration;
-      extraSeconds = Math.floor((diffMs % 60000) / 1000);
+      durationMinutes = project.defaultDuration;
     }
+
+    // 🔑 关键修改：根据 startTime + durationMinutes 计算 endTime
+    const endTime = new Date(startTime.getTime() + durationMinutes * 60000 + extraSeconds * 1000);
+
+    console.log('📝 创建治疗记录:', {
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      durationMinutes,
+      extraSeconds
+    });
 
     // 生成照片文件名（如果前端没有提供）
     let photoFileName = data.photoFileName;
@@ -177,7 +174,9 @@ export class RecordsService {
         },
         project: {
           select: {
+            id: true,
             name: true,
+            code: true,
             category: true,
           },
         },
@@ -263,7 +262,9 @@ export class RecordsService {
         },
         project: {
           select: {
+            id: true,
             name: true,
+            code: true,
             category: true,
           },
         },
@@ -317,7 +318,9 @@ export class RecordsService {
         },
         project: {
           select: {
+            id: true,
             name: true,
+            code: true,
             category: true,
           },
         },
@@ -378,6 +381,12 @@ export class RecordsService {
   }) {
     const { patientId, startTime, recordId } = data;
 
+    console.log('🔍 开始验证时间冲突:', {
+      patientId,
+      startTime,
+      recordId
+    });
+
     // 查询该患者最近的治疗记录（最近10条即可，不需要全部）
     const records = await this.prisma.treatmentRecord.findMany({
       where: {
@@ -406,16 +415,31 @@ export class RecordsService {
       take: 10, // 只检查最近10条记录，提升性能
     });
 
+    console.log('📋 查询到的历史记录:', records.length, '条');
+    records.forEach((r, i) => {
+      console.log(`  [${i}] ID:${r.id}, 开始:${r.startTime.toISOString()}, 结束:${r.endTime.toISOString()}`);
+    });
+
     const newStartTime = new Date(startTime);
+    console.log('⏰ 新记录开始时间:', newStartTime.toISOString());
 
     // 检查时间冲突
     // 规则：允许无缝衔接（新开始时间 >= 旧结束时间），拒绝时间重叠
     for (const record of records) {
       const recordEndTime = new Date(record.endTime);
 
+      console.log(`🔍 检查记录 ${record.id}:`, {
+        旧开始: record.startTime.toISOString(),
+        旧结束: recordEndTime.toISOString(),
+        新开始: newStartTime.toISOString(),
+        '新开始 < 旧结束': newStartTime < recordEndTime,
+        '新开始 >= 旧开始': newStartTime >= record.startTime
+      });
+
       // 如果新记录的开始时间在旧记录的时间范围内（开始时间 < 结束时间），则冲突
       // 允许无缝衔接：startTime >= endTime 是允许的
       if (newStartTime < recordEndTime && newStartTime >= record.startTime) {
+        console.log('❌ 检测到时间冲突!');
         return {
           hasConflict: true,
           conflictingRecord: {
@@ -429,6 +453,7 @@ export class RecordsService {
       }
     }
 
+    console.log('✅ 无时间冲突');
     return { hasConflict: false };
   }
 

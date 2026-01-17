@@ -99,7 +99,7 @@ const saving = ref(false)
 const showSignature = ref(false)
 const signatureImage = ref('')
 
-onLoad((options: any) => {
+onLoad(async (options: any) => {
   console.log('📱 治疗记录页面 onLoad, options:', options)
 
   if (options.patientId) {
@@ -110,7 +110,8 @@ onLoad((options: any) => {
     console.log('❌ 未接收到patientId参数')
   }
 
-  loadProjects()
+  // 🔄 先加载当前用户可操作的项目，再加载最近使用（需要筛选）
+  await loadProjects()
   loadRecentProjects()
 })
 
@@ -183,43 +184,76 @@ async function loadRecentProjects() {
       }
     })
 
+    console.log('📊 API响应状态码:', response.statusCode)
+    console.log('📊 响应数据:', response.data)
+    console.log('📊 数据类型:', typeof response.data)
+    console.log('📊 是否为数组:', Array.isArray(response.data))
+    console.log('📊 数据长度:', response.data?.length)
+
     if (response.statusCode === 200 && response.data && response.data.length > 0) {
-      console.log('患者最近7天治疗记录:', response.data.length)
+      console.log('✅ 进入统计逻辑，患者最近7天治疗记录:', response.data.length)
+      console.log('📋 原始记录数据:', response.data)
 
       // 统计每个项目的使用次数
       const projectStats = new Map<number, { count: number; name: string; code: string }>()
 
       response.data.forEach((record: any) => {
+        console.log('处理记录:', record)
         const projectId = record.project?.id
+        console.log('  - 项目ID:', projectId, '项目名称:', record.project?.name)
         if (projectId) {
           const existing = projectStats.get(projectId)
           if (existing) {
             existing.count++
+            console.log('  - 增加计数，当前次数:', existing.count)
           } else {
             projectStats.set(projectId, {
               count: 1,
               name: record.project?.name || '未知项目',
               code: record.project?.code || ''
             })
+            console.log('  - 首次添加到统计')
           }
         }
       })
 
+      console.log('📈 统计结果 Map 大小:', projectStats.size)
+      console.log('📈 统计结果 Map 内容:', Array.from(projectStats.entries()))
+
       // 转换为数组并按使用次数排序
-      const sortedProjects = Array.from(projectStats.entries())
+      let sortedProjects = Array.from(projectStats.entries())
         .map(([projectId, data]) => ({
           projectId,
           projectName: data.name,
           count: data.count
         }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 6) // 只取前6个
+
+      console.log('📊 排序后的项目列表（筛选前）:', sortedProjects.length, '个')
+
+      // 🔑 关键步骤：筛选出当前用户可操作的项目
+      if (projects.value && projects.value.length > 0) {
+        const userProjectIds = new Set(projects.value.map((p) => p.id))
+        console.log('👤 当前用户可操作项目ID列表:', Array.from(userProjectIds))
+
+        const beforeFilter = sortedProjects.length
+        sortedProjects = sortedProjects.filter((p) => userProjectIds.has(p.projectId))
+        console.log('🔒 筛选后项目数:', sortedProjects.length, '个（过滤了', beforeFilter - sortedProjects.length, '个）')
+      } else {
+        console.log('⚠️ 用户可操作项目列表为空，跳过筛选')
+      }
+
+      // 只取前6个
+      sortedProjects = sortedProjects.slice(0, 6)
 
       recentProjects.value = sortedProjects
-      console.log('患者常用项目统计:', sortedProjects)
+      console.log('✅ 患者常用项目统计（最终结果）:', sortedProjects)
     } else {
       recentProjects.value = []
-      console.log('该患者最近7天无治疗记录')
+      console.log('⚠️ 该患者最近7天无治疗记录或数据为空')
+      console.log('  - statusCode:', response.statusCode)
+      console.log('  - data存在:', !!response.data)
+      console.log('  - data.length:', response.data?.length)
     }
   } catch (error) {
     console.error('加载患者最近项目失败:', error)
@@ -309,6 +343,12 @@ async function startTreatment() {
         startTime: startTime.toISOString()
       }
     })
+
+    console.log('⏰ 时间冲突验证响应:', response)
+    console.log('  - statusCode:', response.statusCode)
+    console.log('  - hasConflict:', response.data?.hasConflict)
+    console.log('  - message:', response.data?.message)
+    console.log('  - 完整data:', response.data)
 
     uni.hideLoading()
 

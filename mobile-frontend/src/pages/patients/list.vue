@@ -35,15 +35,15 @@
     <!-- 搜索栏 -->
     <view class="search-bar">
       <view class="search-input">
-        <text class="iconfont icon-search"></text>
+        <text class="search-icon">🔍</text>
         <input
           type="text"
           v-model="searchQuery"
           placeholder="搜索患者（姓名/拼音/病历号）"
           placeholder-style="color: #999"
-          @confirm="handleSearch"
+          @input="handleSearch"
         />
-        <text v-if="searchQuery" class="iconfont icon-clear" @click="clearSearch"></text>
+        <text v-if="searchQuery" class="clear-btn" @click="clearSearch">×</text>
       </view>
       <button class="add-patient-btn" @click="goToAddPatient">
         <text class="add-icon">+</text>
@@ -123,6 +123,9 @@ const searchQuery = ref('')
 const patients = ref<any[]>([])
 const loading = ref(false)
 const allPatients = ref<any[]>([])
+
+// 防抖计时器
+let searchTimer: any = null
 
 // 弹窗相关
 const showHistoryModal = ref(false)
@@ -204,50 +207,69 @@ async function loadPatients() {
   }
 }
 
-async function handleSearch() {
+// 带防抖的搜索函数
+function handleSearch() {
+  // 清除之前的计时器
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+
+  // 如果搜索框为空，显示所有患者
   if (!searchQuery.value.trim()) {
     patients.value = allPatients.value
     return
   }
 
-  loading.value = true
+  // 设置新的计时器，500ms 后执行搜索
+  searchTimer = setTimeout(async () => {
+    console.log('🔍 执行搜索:', searchQuery.value)
+    loading.value = true
 
-  try {
-    const token = userStore.getToken()
-    if (!token) {
-      handleUnauthorizedError()
-      return
-    }
-
-    const response = await uni.request({
-      url: `http://localhost:3000/patients/search?q=${searchQuery.value}`,
-      method: 'GET',
-      header: {
-        'Authorization': `Bearer ${token}`
+    try {
+      const token = userStore.getToken()
+      if (!token) {
+        handleUnauthorizedError()
+        return
       }
-    }) as any
 
-    if (response.statusCode === 200) {
-      patients.value = response.data
-    } else if (response.statusCode === 401) {
-      handleUnauthorizedError()
-    } else {
-      throw new Error('搜索失败')
+      const response = await uni.request({
+        url: `http://localhost:3000/patients/search?q=${searchQuery.value}`,
+        method: 'GET',
+        header: {
+          'Authorization': `Bearer ${token}`
+        }
+      }) as any
+
+      if (response.statusCode === 200) {
+        patients.value = response.data
+        console.log('✅ 搜索结果:', response.data.length, '个患者')
+      } else if (response.statusCode === 401) {
+        handleUnauthorizedError()
+      } else {
+        throw new Error('搜索失败')
+      }
+    } catch (error) {
+      console.error('搜索失败:', error)
+      uni.showToast({
+        title: '搜索失败',
+        icon: 'none'
+      })
+    } finally {
+      loading.value = false
     }
-  } catch (error) {
-    console.error('搜索失败:', error)
-    uni.showToast({
-      title: '搜索失败',
-      icon: 'none'
-    })
-  } finally {
-    loading.value = false
-  }
+  }, 300) // 300ms 防抖延迟
 }
 
 function clearSearch() {
+  // 清除搜索计时器
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+    searchTimer = null
+  }
+
   searchQuery.value = ''
   patients.value = allPatients.value
+  console.log('🗑️ 已清空搜索')
 }
 
 function viewPatient(patient: any) {
@@ -495,7 +517,7 @@ $bg-page: #f8fafc;
     height: 80rpx;
     box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 
-    .iconfont {
+    .search-icon {
       font-size: 34rpx;
       color: #94a3b8;
       margin-right: 16rpx;
@@ -508,10 +530,25 @@ $bg-page: #f8fafc;
       color: #1e293b;
     }
 
-    .icon-clear {
+    .clear-btn {
       margin-left: 16rpx;
       margin-right: 0;
-      color: #94a3b8;
+      color: $medical-blue;
+      font-size: 40rpx;
+      line-height: 1;
+      padding: 0 8rpx;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: bold;
+      height: 60rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &:active {
+        color: $primary-dark;
+        transform: scale(0.9);
+      }
     }
   }
 
