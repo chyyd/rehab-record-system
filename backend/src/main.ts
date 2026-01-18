@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { BackupService } from './backup/backup.service';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import * as express from 'express';
@@ -52,6 +53,13 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');
+
+  // 启动每日自动备份
+  const backupService = app.get(BackupService);
+  const autoBackupEnabled = process.env.BACKUP_AUTO_ENABLED === 'true';
+  if (autoBackupEnabled) {
+    backupService.startDailyBackup();
+  }
 
   console.log(`🚀 服务器运行在: http://localhost:${port}`);
   console.log(`📚 API文档地址: http://localhost:${port}/api-docs`);
