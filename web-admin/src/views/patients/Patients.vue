@@ -67,6 +67,14 @@
               <el-button type="primary" size="small" @click="handleEdit(row)">
                 编辑
               </el-button>
+              <el-button
+                type="info"
+                size="small"
+                @click="handleQRCode(row)"
+                :disabled="!row.medicalRecordNo"
+              >
+                二维码
+              </el-button>
               <el-button type="success" size="small" @click="handleViewRecords(row)">
                 记录
               </el-button>
@@ -412,6 +420,12 @@
       :selected-patient="selectedPatient"
       @success="handleAssessmentSuccess"
     />
+
+    <!-- 二维码对话框 -->
+    <PatientQRCodeDialog
+      v-model:visible="qrCodeDialogVisible"
+      :patient="currentPatient"
+    />
   </div>
 </template>
 
@@ -423,6 +437,7 @@ import request from '@/utils/request'
 import dayjs from 'dayjs'
 import { pinyin } from 'pinyin-pro'
 import AssessmentDialog from '@/components/AssessmentDialog.vue'
+import PatientQRCodeDialog from '@/components/PatientQRCodeDialog.vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
@@ -455,6 +470,10 @@ const deleteConfirmFormRef = ref<FormInstance>()
 const dischargeForm = reactive({
   dischargeDate: new Date()
 })
+
+// 二维码对话框状态
+const qrCodeDialogVisible = ref(false)
+const currentPatient = ref<any>(null)
 
 // 评估相关
 const assessmentDialogVisible = ref(false)
@@ -887,6 +906,16 @@ function handleDeleteDialogClose() {
   deletePreview.value = null;
   deleteConfirmInput.value = '';
   deleteResult.value = null;
+}
+
+// 打开二维码对话框
+function handleQRCode(row: any) {
+  if (!row.medicalRecordNo) {
+    ElMessage.warning('该患者病历号缺失,无法生成二维码')
+    return
+  }
+  currentPatient.value = row
+  qrCodeDialogVisible.value = true
 }
 </script>
 

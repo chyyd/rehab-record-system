@@ -106,8 +106,12 @@ onLoad(async (options: any) => {
     patientId.value = parseInt(options.patientId)
     console.log('✅ 接收到患者ID:', patientId.value)
     loadPatientInfo()
+  } else if (options.medicalNo) {
+    // 🆕 支持扫码传入病历号
+    console.log('✅ 接收到病历号:', options.medicalNo)
+    await loadPatientByMedicalNo(options.medicalNo)
   } else {
-    console.log('❌ 未接收到patientId参数')
+    console.log('❌ 未接收到patientId或medicalNo参数')
   }
 
   // 🔄 先加载当前用户可操作的项目，再加载最近使用（需要筛选）
@@ -134,6 +138,54 @@ async function loadPatientInfo() {
     }
   } catch (error) {
     console.error('❌ 加载患者信息异常:', error)
+  }
+}
+
+/**
+ * 根据病历号加载患者信息(用于扫码功能)
+ */
+async function loadPatientByMedicalNo(medicalNo: string) {
+  try {
+    uni.showLoading({ title: '加载中...' })
+
+    const response = await request({
+      url: `/patients/by-medical-no/${medicalNo}`,
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (response.statusCode === 200) {
+      const patient = response.data
+      patientId.value = patient.id
+      patientInfo.value = patient
+
+      uni.hideLoading()
+      uni.showToast({
+        title: '患者信息已加载',
+        icon: 'success'
+      })
+      console.log('✅ 通过病历号加载患者信息成功:', patient)
+    } else {
+      throw new Error(response.data?.message || '加载失败')
+    }
+  } catch (error: any) {
+    uni.hideLoading()
+    console.error('❌ 通过病历号加载患者信息失败:', error)
+
+    // 显示友好的错误提示
+    const errorMsg = error.data?.message || error.message || '加载患者信息失败'
+    uni.showToast({
+      title: errorMsg,
+      icon: 'none',
+      duration: 3000
+    })
+
+    // 延迟返回上一页
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 2000)
   }
 }
 

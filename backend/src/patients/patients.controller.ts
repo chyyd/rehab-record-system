@@ -9,6 +9,8 @@ import {
   UseGuards,
   Request,
   Req,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -39,6 +41,23 @@ export class PatientsController {
   @ApiOperation({ summary: '获取今日在院患者' })
   getTodayPatients() {
     return this.patientsService.getTodayPatients();
+  }
+
+  @Get('by-medical-no/:medicalNo')
+  @ApiOperation({ summary: '根据病历号查询患者' })
+  async findByMedicalRecordNo(@Param('medicalNo') medicalNo: string) {
+    try {
+      const patient = await this.patientsService.findByMedicalRecordNo(medicalNo);
+      if (!patient) {
+        throw new NotFoundException('未找到该患者');
+      }
+      return patient;
+    } catch (error) {
+      if (error.message === '该患者已出院') {
+        throw new BadRequestException(error.message);
+      }
+      throw error;
+    }
   }
 
   @Get(':id')
