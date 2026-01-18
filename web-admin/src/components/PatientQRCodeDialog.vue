@@ -48,6 +48,7 @@ import { ref, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, CopyDocument, Printer } from '@element-plus/icons-vue'
 import QRCode from 'qrcode'
+import { debounce } from 'lodash-es'
 
 // Props
 interface Props {
@@ -137,9 +138,12 @@ async function generateQRCode() {
   }
 }
 
+// 创建防抖函数(200ms延迟)
+const debouncedGenerate = debounce(generateQRCode, 200)
+
 // 尺寸变化处理
-async function handleSizeChange() {
-  await generateQRCode()
+function handleSizeChange() {
+  debouncedGenerate()
 }
 
 // 下载二维码
