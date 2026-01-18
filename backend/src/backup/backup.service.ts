@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../common/prisma.service';
+import { PrismaService } from '../common/services/prisma.service';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as schedule from 'node-schedule';
