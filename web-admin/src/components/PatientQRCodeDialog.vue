@@ -133,13 +133,14 @@ async function generateQRCode() {
       return
     }
 
-    // 获取移动端H5地址(从环境变量配置)
-    const mobileH5Url = import.meta.env.VITE_MOBILE_H5_URL || 'http://localhost:5173'
+    // 生成二维码数据(JSON格式,方便移动端扫码解析)
+    const qrData = JSON.stringify({
+      type: 'patient',
+      medicalNo: props.patient.medicalRecordNo,
+      name: props.patient.name
+    })
 
-    // 生成完整的H5 URL
-    const qrData = `${mobileH5Url}/#/pages/record/create?medicalNo=${props.patient.medicalRecordNo}`
-
-    console.log('生成新二维码URL:', qrData, '尺寸:', selectedSize.value)
+    console.log('生成新二维码数据:', qrData, '尺寸:', selectedSize.value)
 
     const pxSize = SIZE_MAP[selectedSize.value]
 
