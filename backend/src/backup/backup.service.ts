@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../common/services/prisma.service';
 import * as fs from 'fs/promises';
@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as schedule from 'node-schedule';
 
 @Injectable()
-export class BackupService {
+export class BackupService implements OnModuleInit {
   private readonly logger = new Logger(BackupService.name);
   private backupJob: schedule.Job | null = null;
 
@@ -14,6 +14,63 @@ export class BackupService {
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {}
+
+  async onModuleInit() {
+    // 应用启动时初始化统计数据
+    await this.initializeStatistics();
+  }
+
+  private async initializeStatistics() {
+    try {
+      // 计算数据库大小
+      let databaseSize = 0;
+      try {
+        const dbPath = this.configService.get<string>('DATABASE_URL').replace('file:', '');
+        const dbStats = await fs.stat(dbPath);
+        databaseSize = dbStats.size;
+      } catch (error) {
+        this.logger.warn('Failed to get database size:', error.message);
+      }
+
+      // 统计签名图片数量
+      let photosCount = 0;
+      try {
+        const photosDir = path.join(process.cwd(), 'uploads', 'photos');
+        const files = await fs.readdir(photosDir);
+        photosCount = files.filter(f => f !== '.gitkeep').length;
+      } catch (error) {
+        this.logger.warn('Failed to count photos:', error.message);
+      }
+
+      // 更新或创建系统状态记录
+      const existingStatus = await this.prisma.systemStatus.findFirst({
+        where: { id: 1 },
+      });
+
+      if (existingStatus) {
+        await this.prisma.systemStatus.update({
+          where: { id: 1 },
+          data: {
+            databaseSize,
+            photosCount,
+          },
+        });
+      } else {
+        await this.prisma.systemStatus.create({
+          data: {
+            id: 1,
+            databaseSize,
+            photosCount,
+            backupStatus: 'unknown',
+          },
+        });
+      }
+
+      this.logger.log(`✅ Statistics initialized: DB=${databaseSize} bytes, Photos=${photosCount}`);
+    } catch (error) {
+      this.logger.error('Failed to initialize statistics:', error);
+    }
+  }
 
   async getBackupStatus() {
     const status = await this.prisma.systemStatus.findFirst({
@@ -82,12 +139,35 @@ export class BackupService {
 
     // 更新系统状态
     const allSuccess = results.every(r => r.status === 'success');
+
+    // 计算数据库大小
+    let databaseSize = 0;
+    try {
+      const dbPath = this.configService.get<string>('DATABASE_URL').replace('file:', '');
+      const dbStats = await fs.stat(dbPath);
+      databaseSize = dbStats.size;
+    } catch (error) {
+      this.logger.warn('Failed to get database size:', error.message);
+    }
+
+    // 统计签名图片数量
+    let photosCount = 0;
+    try {
+      const photosDir = path.join(process.cwd(), 'uploads', 'photos');
+      const files = await fs.readdir(photosDir);
+      photosCount = files.filter(f => f !== '.gitkeep').length;
+    } catch (error) {
+      this.logger.warn('Failed to count photos:', error.message);
+    }
+
     await this.prisma.systemStatus.update({
       where: { id: 1 },
       data: {
         lastBackupTime: new Date(),
         backupStatus: allSuccess ? 'ok' : 'failed',
         failedReason: allSuccess ? null : '部分备份失败',
+        databaseSize,
+        photosCount,
       },
     });
 
