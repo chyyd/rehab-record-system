@@ -41,3 +41,10 @@ prisma/migrations/
 # Uploads (if large)
 uploads/photos/*
 !uploads/photos/.gitkeep
+
+# Backups
+backups/
+*.backup
+
+# Workflow
+.spec-workflow/

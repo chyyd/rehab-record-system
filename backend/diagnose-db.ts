@@ -53,7 +53,6 @@ async function diagnose() {
       project: {
         select: {
           name: true,
-          category: true,
         },
       },
       therapist: {

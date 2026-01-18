@@ -43,8 +43,6 @@ export class RecordsService {
           select: {
             id: true,
             name: true,
-            code: true,
-            category: true,
           },
         },
         therapist: {
@@ -176,8 +174,6 @@ export class RecordsService {
           select: {
             id: true,
             name: true,
-            code: true,
-            category: true,
           },
         },
         therapist: {
@@ -264,8 +260,6 @@ export class RecordsService {
           select: {
             id: true,
             name: true,
-            code: true,
-            category: true,
           },
         },
         therapist: {
@@ -320,8 +314,6 @@ export class RecordsService {
           select: {
             id: true,
             name: true,
-            code: true,
-            category: true,
           },
         },
         therapist: {

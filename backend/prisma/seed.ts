@@ -74,8 +74,6 @@ async function main() {
   const acupuncture = await prisma.project.create({
     data: {
       name: '针灸治疗',
-      code: 'ACU_001',
-      category: 'TCM',
       defaultDuration: 30,
       allowedRoles: JSON.stringify(['physician', 'therapist']),
       sortOrder: 1,
@@ -85,8 +83,6 @@ async function main() {
   const electro = await prisma.project.create({
     data: {
       name: '电刺激治疗',
-      code: 'ELE_001',
-      category: 'PT',
       defaultDuration: 20,
       allowedRoles: JSON.stringify(['nurse', 'therapist']),
       sortOrder: 2,
@@ -96,8 +92,6 @@ async function main() {
   const pt = await prisma.project.create({
     data: {
       name: '运动功能训练',
-      code: 'PT_001',
-      category: 'PT',
       defaultDuration: 30,
       allowedRoles: JSON.stringify(['therapist']),
       sortOrder: 3,
@@ -107,8 +101,6 @@ async function main() {
   const ot = await prisma.project.create({
     data: {
       name: '生活技能康复训练',
-      code: 'OT_001',
-      category: 'OT',
       defaultDuration: 30,
       allowedRoles: JSON.stringify(['therapist']),
       sortOrder: 4,
@@ -118,8 +110,6 @@ async function main() {
   const ct = await prisma.project.create({
     data: {
       name: '认知功能训练',
-      code: 'CT_001',
-      category: 'CT',
       defaultDuration: 30,
       allowedRoles: JSON.stringify(['therapist']),
       sortOrder: 5,
@@ -129,8 +119,6 @@ async function main() {
   const st = await prisma.project.create({
     data: {
       name: '言语功能训练',
-      code: 'ST_001',
-      category: 'ST',
       defaultDuration: 30,
       allowedRoles: JSON.stringify(['therapist']),
       sortOrder: 6,
@@ -140,8 +128,6 @@ async function main() {
   const vt = await prisma.project.create({
     data: {
       name: '职业功能康复训练',
-      code: 'VT_001',
-      category: 'OT',
       defaultDuration: 30,
       allowedRoles: JSON.stringify(['therapist']),
       sortOrder: 7,
