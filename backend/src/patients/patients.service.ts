@@ -188,20 +188,104 @@ export class PatientsService {
     };
   }
 
-  async remove(id: number) {
+  // 获取删除预览（不执行删除）
+  async getDeletePreview(id: number) {
     const patient = await this.prisma.patient.findUnique({
       where: { id },
+      include: {
+        assessments: true,
+        treatmentRecords: true
+      }
     });
 
     if (!patient) {
       throw new NotFoundException('患者不存在');
     }
 
-    await this.prisma.patient.delete({
-      where: { id },
+    // 统计签名图片文件
+    let signaturePhotos = 0;
+    const filesToDelete: string[] = [];
+
+    patient.treatmentRecords.forEach(record => {
+      if (record.photoFileName) {
+        signaturePhotos++;
+        filesToDelete.push(record.photoFileName);
+      }
     });
 
-    return { message: '删除成功' };
+    return {
+      patient: {
+        id: patient.id,
+        name: patient.name,
+        medicalRecordNo: patient.medicalRecordNo
+      },
+      statistics: {
+        assessments: patient.assessments.length,
+        treatmentRecords: patient.treatmentRecords.length,
+        signaturePhotos,
+        files: filesToDelete.length
+      }
+    };
+  }
+
+  // 安全删除患者（使用事务 + 文件清理）
+  async remove(id: number, operatorId?: number) {
+    const preview = await this.getDeletePreview(id);
+    const UPLOAD_PATH = process.env.UPLOAD_PATH || './uploads/photos';
+    const deletedFiles: string[] = [];
+    const failedFiles: string[] = [];
+
+    await this.prisma.$transaction(async (tx) => {
+      // 查询所有签名图片文件名
+      const records = await tx.treatmentRecord.findMany({
+        where: { patientId: id },
+        select: { photoFileName: true }
+      });
+
+      const fileNames = records
+        .map(r => r.photoFileName)
+        .filter((name): name is string => !!name);
+
+      // 删除数据库记录（级联删除）
+      await tx.assessment.deleteMany({ where: { patientId: id } });
+      await tx.treatmentRecord.deleteMany({ where: { patientId: id } });
+      await tx.patient.delete({ where: { id } });
+
+      // 删除物理文件
+      const fs = await import('fs');
+      const path = await import('path');
+
+      fileNames.forEach(fileName => {
+        const filePath = path.join(UPLOAD_PATH, fileName);
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            deletedFiles.push(fileName);
+          }
+        } catch (error) {
+          failedFiles.push(fileName);
+        }
+      });
+
+      // 记录审计日志
+      console.log('📋 删除审计日志:', JSON.stringify({
+        action: 'DELETE_PATIENT',
+        patientId: id,
+        patientName: preview.patient.name,
+        operatorId,
+        statistics: preview.statistics,
+        deletedFiles: deletedFiles.length,
+        failedFiles: failedFiles.length,
+        timestamp: new Date()
+      }));
+    });
+
+    return {
+      message: '删除成功',
+      statistics: preview.statistics,
+      deletedFiles: deletedFiles.length,
+      failedFiles: failedFiles.length
+    };
   }
 
   async getTodayPatients() {

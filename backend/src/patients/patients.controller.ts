@@ -7,6 +7,8 @@ import {
   Body,
   Param,
   UseGuards,
+  Request,
+  Req,
 } from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -69,9 +71,16 @@ export class PatientsController {
     return this.patientsService.discharge(+id);
   }
 
+  @Get(':id/delete-preview')
+  @ApiOperation({ summary: '获取患者删除预览' })
+  getDeletePreview(@Param('id') id: string) {
+    return this.patientsService.getDeletePreview(+id);
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: '删除患者' })
-  remove(@Param('id') id: string) {
-    return this.patientsService.remove(+id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    const operatorId = (req as any).user?.id;
+    return this.patientsService.remove(+id, operatorId);
   }
 }

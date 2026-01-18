@@ -110,6 +110,14 @@
               >
                 撤销出院
               </el-button>
+              <el-button
+                v-if="row.dischargeDate && isAdmin"
+                type="danger"
+                size="small"
+                @click="handleDelete(row)"
+              >
+                删除
+              </el-button>
             </div>
           </template>
         </el-table-column>
@@ -262,6 +270,139 @@
       </template>
     </el-dialog>
 
+    <!-- Delete Dialog -->
+    <el-dialog
+      v-model="deleteDialogVisible"
+      :title="deleteStep === 1 ? '删除患者确认' : deleteStep === 2 ? '安全验证' : '删除完成'"
+      width="550px"
+      @close="handleDeleteDialogClose"
+    >
+      <!-- 第一步：显示删除预览 -->
+      <div v-if="deleteStep === 1 && deletePreview">
+        <el-alert
+          title="警告"
+          type="error"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 20px;"
+        >
+          您即将删除患者档案，此操作不可恢复
+        </el-alert>
+
+        <el-descriptions title="患者信息" :column="2" border style="margin-bottom: 20px;">
+          <el-descriptions-item label="姓名">{{ deletePreview.patient.name }}</el-descriptions-item>
+          <el-descriptions-item label="病历号">{{ deletePreview.patient.medicalRecordNo }}</el-descriptions-item>
+        </el-descriptions>
+
+        <el-divider content-position="left">以下数据将被永久删除</el-divider>
+
+        <el-row :gutter="16" style="margin-top: 16px;">
+          <el-col :span="12">
+            <el-statistic title="康复评估" :value="deletePreview.statistics.assessments">
+              <template #suffix>条</template>
+            </el-statistic>
+          </el-col>
+          <el-col :span="12">
+            <el-statistic title="治疗记录" :value="deletePreview.statistics.treatmentRecords">
+              <template #suffix>条</template>
+            </el-statistic>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="16" style="margin-top: 16px;">
+          <el-col :span="12">
+            <el-statistic title="签名图片" :value="deletePreview.statistics.signaturePhotos">
+              <template #suffix>张</template>
+            </el-statistic>
+          </el-col>
+          <el-col :span="12">
+            <el-statistic title="文件总数" :value="deletePreview.statistics.files">
+              <template #suffix>个</template>
+            </el-statistic>
+          </el-col>
+        </el-row>
+
+        <el-alert
+          type="warning"
+          :closable="false"
+          show-icon
+          style="margin-top: 20px;"
+        >
+          为防止误操作，需要再次输入病历号确认
+        </el-alert>
+      </div>
+
+      <!-- 第二步：输入病历号验证 -->
+      <el-form
+        v-if="deleteStep === 2"
+        ref="deleteConfirmFormRef"
+        :model="{ confirmInput: deleteConfirmInput }"
+        :rules="deleteConfirmRules"
+        label-width="100px"
+      >
+        <el-form-item label="患者姓名">
+          <el-input :value="deletePreview?.patient.name" disabled />
+        </el-form-item>
+        <el-form-item label="病历号">
+          <el-input :value="deletePreview?.patient.medicalRecordNo" disabled />
+        </el-form-item>
+        <el-form-item label="确认病历号" prop="confirmInput">
+          <el-input
+            v-model="deleteConfirmInput"
+            placeholder="请输入病历号以确认删除"
+            clearable
+          />
+        </el-form-item>
+        <el-alert
+          type="error"
+          :closable="false"
+          show-icon
+        >
+          请输入上方显示的病历号以确认删除操作
+        </el-alert>
+      </el-form>
+
+      <!-- 第三步：删除成功 -->
+      <div v-if="deleteStep === 3 && deleteResult">
+        <el-result
+          icon="success"
+          title="删除成功"
+          sub-title="患者档案及相关数据已全部清理"
+        >
+          <template #extra>
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="康复评估">{{ deleteResult.statistics.assessments }} 条</el-descriptions-item>
+              <el-descriptions-item label="治疗记录">{{ deleteResult.statistics.treatmentRecords }} 条</el-descriptions-item>
+              <el-descriptions-item label="签名图片">{{ deleteResult.statistics.signaturePhotos }} 张</el-descriptions-item>
+              <el-descriptions-item label="已清理文件">{{ deleteResult.deletedFiles }} 个</el-descriptions-item>
+            </el-descriptions>
+            <el-alert
+              v-if="deleteResult.failedFiles > 0"
+              :title="`${deleteResult.failedFiles} 个文件清理失败`"
+              type="warning"
+              :closable="false"
+              show-icon
+              style="margin-top: 16px;"
+            />
+          </template>
+        </el-result>
+      </div>
+
+      <template #footer>
+        <template v-if="deleteStep === 1">
+          <el-button @click="deleteDialogVisible = false">取消</el-button>
+          <el-button type="danger" @click="handleDeleteStep1">继续</el-button>
+        </template>
+        <template v-if="deleteStep === 2">
+          <el-button @click="deleteStep = 1">返回</el-button>
+          <el-button type="danger" :loading="deleting" @click="handleDeleteStep2">确认删除</el-button>
+        </template>
+        <template v-if="deleteStep === 3">
+          <el-button type="primary" @click="deleteDialogVisible = false">确定</el-button>
+        </template>
+      </template>
+    </el-dialog>
+
     <!-- Assessment Dialog -->
     <AssessmentDialog
       v-model="assessmentDialogVisible"
@@ -310,6 +451,7 @@ const dischargeDialogVisible = ref(false)
 const discharging = ref(false)
 const selectedPatient = ref<any>(null)
 const dischargeFormRef = ref<FormInstance>()
+const deleteConfirmFormRef = ref<FormInstance>()
 const dischargeForm = reactive({
   dischargeDate: new Date()
 })
@@ -320,8 +462,32 @@ const currentAssessmentType = ref<'admission' | 'discharge'>('admission')
 const currentAssessment = ref<any>(null)
 const patientAssessments = ref<Record<number, any>>({})
 
+// 删除相关
+const deleteDialogVisible = ref(false)
+const deleteStep = ref<1 | 2 | 3>(1)
+const deletePreview = ref<any>(null)
+const deleteConfirmInput = ref('')
+const deleteResult = ref<any>(null)
+const deleting = ref(false)
+
 const dischargeRules: FormRules = {
   dischargeDate: [{ required: true, message: '请选择出院日期', trigger: 'change' }]
+}
+
+const deleteConfirmRules: FormRules = {
+  confirmInput: [
+    { required: true, message: '请输入病历号', trigger: 'blur' },
+    {
+      validator: (rule: any, value: any, callback: any) => {
+        if (value !== deletePreview.value?.patient?.medicalRecordNo) {
+          callback(new Error('病历号不匹配'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
 }
 
 const formRef = ref<FormInstance>()
@@ -668,6 +834,59 @@ function handleDialogClose() {
 
 function formatDate(date: string): string {
   return dayjs(date).format('YYYY-MM-DD')
+}
+
+// 删除患者 - 打开对话框
+async function handleDelete(row: any) {
+  try {
+    selectedPatient.value = row;
+    // 获取删除预览
+    const preview = await request.get(`/patients/${row.id}/delete-preview`);
+    deletePreview.value = preview;
+    deleteStep.value = 1;
+    deleteConfirmInput.value = '';
+    deleteResult.value = null;
+    deleteDialogVisible.value = true;
+  } catch (error: any) {
+    ElMessage.error(error.message || '获取删除预览失败');
+  }
+}
+
+// 删除第一步：继续到第二步
+function handleDeleteStep1() {
+  deleteStep.value = 2;
+}
+
+// 删除第二步：执行删除
+async function handleDeleteStep2() {
+  if (!deleteConfirmFormRef.value) return;
+
+  await deleteConfirmFormRef.value.validate(async (valid) => {
+    if (valid) {
+      deleting.value = true;
+
+      try {
+        const result = await request.delete(`/patients/${selectedPatient.value.id}`);
+        deleteResult.value = result;
+        deleteStep.value = 3;
+        deleting.value = false;
+
+        // 刷新列表
+        await loadData();
+      } catch (error: any) {
+        deleting.value = false;
+        ElMessage.error(error.message || '删除失败');
+      }
+    }
+  });
+}
+
+// 关闭删除对话框
+function handleDeleteDialogClose() {
+  deleteStep.value = 1;
+  deletePreview.value = null;
+  deleteConfirmInput.value = '';
+  deleteResult.value = null;
 }
 </script>
 
