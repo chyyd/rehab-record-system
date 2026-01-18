@@ -33,3 +33,8 @@ data/*.db-journal
 # uploads
 uploads/*
 !uploads/.gitkeep
+
+# 备份文件
+backups/database/*.db
+backups/config/env_*
+!backups/**/.gitkeep
