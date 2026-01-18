@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <el-row :gutter="20">
-      <el-col :span="4">
+      <el-col :span="4.8">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/patients')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #409eff;">
@@ -15,7 +15,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="4">
+      <el-col :span="4.8">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/records')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #67c23a;">
@@ -29,7 +29,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="4">
+      <el-col :span="4.8">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/projects')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #e6a23c;">
@@ -43,7 +43,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="4">
+      <el-col :span="4.8">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/users')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #f56c6c;">
@@ -57,7 +57,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="4">
+      <el-col :span="4.8">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/backup')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #909399;">

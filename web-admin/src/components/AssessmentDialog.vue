@@ -51,18 +51,6 @@
               </el-form-item>
             </el-col>
           </el-row>
-          <el-row :gutter="24">
-            <el-col :span="12">
-              <el-form-item label="评估地点" prop="location">
-                <el-select v-model="formData.location" placeholder="选择评估地点" style="width: 100%;">
-                  <el-option label="康复评定室" value="康复评定室" />
-                  <el-option label="病房" value="病房" />
-                  <el-option label="治疗室" value="治疗室" />
-                  <el-option label="其他" value="其他" />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
         </el-form>
       </div>
 
@@ -446,10 +434,21 @@ const otherNotes = ref('')
 const brunnstromStages = ['I期', 'II期', 'III期', 'IV期', 'V期', 'VI期']
 const muscleLevels = ['0级', '1级', '2级', '3级', '4级', '5级', '3-级', '3+级', '4-级', '4+级']
 
+// 辅助函数：获取本地时间的格式化字符串
+function getLocalDateTimeString(): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const seconds = String(now.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
 const formData = reactive<any>({
-  assessmentDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
+  assessmentDate: getLocalDateTimeString(),
   assessorId: null,
-  location: '康复评定室',
   rehabGoal: '',
   rehabEffect: '',
   homeGuidance: ''
@@ -457,8 +456,7 @@ const formData = reactive<any>({
 
 const rules: FormRules = {
   assessmentDate: [{ required: true, message: '请选择评估日期', trigger: 'change' }],
-  assessorId: [{ required: true, message: '请选择评估医师', trigger: 'change' }],
-  location: [{ required: true, message: '请选择评估地点', trigger: 'change' }]
+  assessorId: [{ required: true, message: '请选择评估医师', trigger: 'change' }]
 }
 
 // 描述生成函数
@@ -620,9 +618,8 @@ function resetForm() {
   languageScore.value = null
   otherNotes.value = ''
   Object.assign(formData, {
-    assessmentDate: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    assessmentDate: getLocalDateTimeString(),
     assessorId: null,
-    location: '康复评定室',
     rehabGoal: '',
     rehabEffect: '',
     homeGuidance: ''
@@ -643,7 +640,6 @@ async function handleSubmit() {
 
         const data: any = {
           assessmentDate: formData.assessmentDate ? new Date(formData.assessmentDate).toISOString() : new Date().toISOString(),
-          location: formData.location,
           selectedItems: ['simplified']
         }
 
