@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard">
     <el-row :gutter="20">
-      <el-col :span="6">
+      <el-col :span="4">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/patients')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #409eff;">
@@ -15,7 +15,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
+      <el-col :span="4">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/records')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #67c23a;">
@@ -29,7 +29,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
+      <el-col :span="4">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/projects')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #e6a23c;">
@@ -43,7 +43,7 @@
         </el-card>
       </el-col>
 
-      <el-col :span="6">
+      <el-col :span="4">
         <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/users')">
           <div class="stat-card">
             <div class="stat-icon" style="background-color: #f56c6c;">
@@ -53,6 +53,25 @@
               <div class="stat-value">{{ stats.userCount }}</div>
               <div class="stat-label">系统用户</div>
             </div>
+          </div>
+        </el-card>
+      </el-col>
+
+      <el-col :span="4">
+        <el-card shadow="hover" class="stat-card-wrapper" @click="navigateTo('/backup')">
+          <div class="stat-card">
+            <div class="stat-icon" style="background-color: #909399;">
+              <el-icon :size="30"><FolderOpened /></el-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ backupLastTime }}</div>
+              <div class="stat-label">备份状态</div>
+            </div>
+          </div>
+          <!-- 失败时显示红色警告 -->
+          <div v-if="backupStatus === 'failed'" class="backup-warning">
+            <el-icon><CircleClose /></el-icon>
+            <span>{{ backupFailedReason }}</span>
           </div>
         </el-card>
       </el-col>
@@ -156,6 +175,7 @@ import { useRouter } from 'vue-router'
 import { useRoute } from 'vue-router'
 import request from '@/utils/request'
 import dayjs from 'dayjs'
+import { FolderOpened, CircleClose } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -167,6 +187,10 @@ const stats = ref({
   userCount: 0
 })
 
+const backupStatus = ref('unknown')
+const backupLastTime = ref('--:--')
+const backupFailedReason = ref('')
+
 const dischargedPatients = ref<any[]>([])
 const recentRecords = ref<any[]>([])
 const pendingAssessments = ref<any[]>([])
@@ -177,6 +201,7 @@ onMounted(() => {
   loadRecentRecords()
   loadDischargedPatients()
   loadPendingAssessments()
+  loadBackupStatus()
 })
 
 async function loadStats() {
@@ -341,6 +366,21 @@ function goToPatient(item: any) {
   })
 }
 
+async function loadBackupStatus() {
+  try {
+    const status = await request.get('/backup/status')
+    backupStatus.value = status.backupStatus
+    backupFailedReason.value = status.failedReason || ''
+
+    if (status.lastBackupTime) {
+      const date = new Date(status.lastBackupTime)
+      backupLastTime.value = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+    }
+  } catch (error) {
+    console.error('Failed to load backup status:', error)
+  }
+}
+
 function navigateTo(path: string) {
   router.push(path)
 }
@@ -360,6 +400,18 @@ function navigateTo(path: string) {
     :deep(.el-card__body) {
       padding: 20px;
     }
+  }
+
+  .backup-warning {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fee2e2;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #dc2626;
+    font-size: 12px;
   }
 
   .stat-card {
