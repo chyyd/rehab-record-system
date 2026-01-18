@@ -57,8 +57,6 @@ model Patient {
 model Project {
   id             Int      @id @default(autoincrement())
   name           String   // 项目名称
-  code           String   @unique // 项目编码
-  category       String   // PT/OT/ST/TCM等
   defaultDuration Int     @default(30) // 默认时长(分钟)
   allowedRoles   String   // JSON数组: ["physician", "nurse"]
   isActive       Boolean  @default(true)

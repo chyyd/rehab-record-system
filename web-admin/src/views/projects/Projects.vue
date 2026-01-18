@@ -17,16 +17,8 @@
           <!-- Table -->
           <el-table :data="activeProjects" stripe v-loading="loading">
             <el-table-column prop="name" label="项目名称" width="200" />
-            <el-table-column prop="code" label="项目编码" width="150" />
-            <el-table-column prop="category" label="类别" width="100">
-              <template #default="{ row }">
-                <el-tag :type="getCategoryType(row.category)" size="small">
-                  {{ row.category }}
-                </el-tag>
-              </template>
-            </el-table-column>
             <el-table-column prop="defaultDuration" label="默认时长(分钟)" width="150" />
-            <el-table-column prop="allowedRoles" label="允许的角色" width="300">
+            <el-table-column prop="allowedRoles" label="允许的角色">
               <template #default="{ row }">
                 <template v-if="Array.isArray(parseAllowedRoles(row.allowedRoles)) && parseAllowedRoles(row.allowedRoles).length > 0">
                   <el-tag
@@ -71,16 +63,8 @@
         <el-tab-pane label="禁用项目" name="inactive">
           <el-table :data="inactiveProjects" stripe v-loading="loading">
             <el-table-column prop="name" label="项目名称" width="200" />
-            <el-table-column prop="code" label="项目编码" width="150" />
-            <el-table-column prop="category" label="类别" width="100">
-              <template #default="{ row }">
-                <el-tag :type="getCategoryType(row.category)" size="small">
-                  {{ row.category }}
-                </el-tag>
-              </template>
-            </el-table-column>
             <el-table-column prop="defaultDuration" label="默认时长(分钟)" width="150" />
-            <el-table-column prop="allowedRoles" label="允许的角色" width="300">
+            <el-table-column prop="allowedRoles" label="允许的角色">
               <template #default="{ row }">
                 <template v-if="Array.isArray(parseAllowedRoles(row.allowedRoles)) && parseAllowedRoles(row.allowedRoles).length > 0">
                   <el-tag
@@ -140,22 +124,6 @@
       >
         <el-form-item label="项目名称" prop="name">
           <el-input v-model="formData.name" placeholder="请输入项目名称" />
-        </el-form-item>
-
-        <el-form-item label="项目编码" prop="code">
-          <el-input v-model="formData.code" placeholder="请输入项目编码，如：PT_001" />
-        </el-form-item>
-
-        <el-form-item label="类别" prop="category">
-          <el-select v-model="formData.category" placeholder="请选择类别" style="width: 100%;">
-            <el-option label="PT (物理治疗)" value="PT" />
-            <el-option label="OT (作业治疗)" value="OT" />
-            <el-option label="ST (言语治疗)" value="ST" />
-            <el-option label="CT (认知训练)" value="CT" />
-            <el-option label="TCM (中医治疗)" value="TCM" />
-            <el-option label="VT (职业治疗)" value="VT" />
-            <el-option label="ELE (电刺激)" value="ELE" />
-          </el-select>
         </el-form-item>
 
         <el-form-item label="默认时长" prop="defaultDuration">
@@ -221,8 +189,6 @@ const selectedRoles = ref<string[]>([])
 const formData = reactive<any>({
   id: null,
   name: '',
-  code: '',
-  category: '',
   defaultDuration: 30,
   allowedRoles: '',
   sortOrder: 0,
@@ -231,8 +197,6 @@ const formData = reactive<any>({
 
 const rules: FormRules = {
   name: [{ required: true, message: '请输入项目名称', trigger: 'blur' }],
-  code: [{ required: true, message: '请输入项目编码', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择类别', trigger: 'change' }],
   defaultDuration: [{ required: true, message: '请输入默认时长', trigger: 'blur' }],
   allowedRoles: [
     {
@@ -314,8 +278,6 @@ function handleAdd() {
   Object.assign(formData, {
     id: null,
     name: '',
-    code: '',
-    category: '',
     defaultDuration: 30,
     allowedRoles: '',
     sortOrder: 0,
@@ -332,8 +294,6 @@ function handleEdit(row: any) {
   Object.assign(formData, {
     id: row.id,
     name: row.name,
-    code: row.code,
-    category: row.category,
     defaultDuration: row.defaultDuration,
     sortOrder: row.sortOrder,
     isActive: row.isActive
@@ -411,19 +371,6 @@ function handleDialogClose() {
     formRef.value?.resetFields()
     selectedRoles.value = []
   }, 100)
-}
-
-function getCategoryType(category: string): string {
-  const typeMap: Record<string, string> = {
-    PT: 'primary',
-    OT: 'success',
-    ST: 'warning',
-    CT: 'danger',
-    TCM: 'info',
-    VT: '',
-    ELE: 'primary'
-  }
-  return typeMap[category] || ''
 }
 
 function getRoleName(role: string): string {

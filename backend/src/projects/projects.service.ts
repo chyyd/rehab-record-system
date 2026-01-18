@@ -43,15 +43,6 @@ export class ProjectsService {
   }
 
   async create(data: any) {
-    // 检查项目编码是否已存在
-    const existingProject = await this.prisma.project.findUnique({
-      where: { code: data.code },
-    });
-
-    if (existingProject) {
-      throw new Error('项目编码已存在');
-    }
-
     // 提取需要的字段，排除 id
     const { id, ...createData } = data;
 
