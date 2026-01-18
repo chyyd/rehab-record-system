@@ -270,26 +270,10 @@
           />
         </el-form-item>
 
-        <el-form-item label="治疗时长" prop="durationMinutes">
-          <el-input-number
-            v-model="formData.durationMinutes"
-            :min="1"
-            :max="180"
-            @change="updateEndTime"
-            style="width: 100%;"
-          />
-          <span style="margin-left: 10px;">分钟（结束时间将自动计算）</span>
-        </el-form-item>
-
-        <el-form-item label="额外秒数" prop="extraSeconds">
-          <el-input-number
-            v-model="formData.extraSeconds"
-            :min="0"
-            :max="59"
-            @change="updateEndTime"
-            style="width: 100%;"
-          />
-          <span style="margin-left: 10px;">秒</span>
+        <el-form-item label="治疗时长">
+          <span style="font-size: 14px; font-weight: 500; color: #606266;">
+            {{ formData.durationMinutes }} 分钟（根据所选治疗项目自动设置）
+          </span>
         </el-form-item>
 
         <el-form-item label="患者反应" prop="outcome">
@@ -442,7 +426,6 @@ const formData = reactive<any>({
   startTime: dayjs().format('HH:mm:ss'),
   endTime: dayjs().add(30, 'minute').format('HH:mm:ss'),
   durationMinutes: 30,
-  extraSeconds: 0,
   outcome: '无不良反应',
   notes: '',
   signatureData: '',
@@ -455,8 +438,7 @@ const rules: FormRules = {
   therapistId: [{ required: true, message: '请选择治疗师', trigger: 'change' }],
   treatmentDate: [{ required: true, message: '请选择治疗日期', trigger: 'change' }],
   startTime: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
-  endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }],
-  durationMinutes: [{ required: true, message: '请输入治疗时长', trigger: 'blur' }]
+  endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }]
 }
 
 // 计算属性：在院患者和已出院患者的记录
@@ -641,7 +623,6 @@ function handleAdd() {
     startTime: dayjs().format('HH:mm:ss'),
     endTime: dayjs().add(30, 'minute').format('HH:mm:ss'),
     durationMinutes: 30,
-    extraSeconds: 0,
     outcome: '无不良反应',
     notes: '',
     signatureData: '',
@@ -731,7 +712,7 @@ async function handleSubmit() {
           startTime: startDateTime,
           endTime: endDateTime,
           durationMinutes: formData.durationMinutes,
-          extraSeconds: formData.extraSeconds || 0,
+          extraSeconds: 0,
           outcome: formData.outcome,
           notes: formData.notes,
           photoFileName: photoFileName
@@ -802,7 +783,7 @@ function formatDateTime(date: string): string {
 function updateEndTime() {
   if (formData.startTime && formData.durationMinutes) {
     const [hours, minutes, seconds] = formData.startTime.split(':').map(Number)
-    const endDate = dayjs().hour(hours).minute(minutes).second(seconds).add(formData.durationMinutes, 'minute').add(formData.extraSeconds || 0, 'second')
+    const endDate = dayjs().hour(hours).minute(minutes).second(seconds).add(formData.durationMinutes, 'minute')
     formData.endTime = endDate.format('HH:mm:ss')
   }
 }

@@ -141,19 +141,18 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(record, index) in treatmentRecords" :key="record.id">
+              <tr v-for="(record, index) in recordsWithRandomTime" :key="record.id">
                 <td>{{ formatDateOnly(record.treatmentDate) }}</td>
                 <td><span class="treatment-type">{{ record.project?.name }}</span></td>
                 <td>{{ record.therapist?.name }}</td>
                 <td class="treatment-time-cell">
                   <span class="treatment-date">{{ formatDateOnly(record.treatmentDate) }}</span>
                   <span class="time-range">
-                    <span class="start-time">{{ formatTime(record.startTime) }}</span>-<span class="end-time">{{ formatTime(record.endTime) }}</span>
+                    <span class="start-time">{{ formatTime(record.startTime) }}</span>-<span class="end-time">{{ record.endTimeWithRandom }}</span>
                   </span>
                 </td>
                 <td>
                   <span class="time-badge">{{ record.durationMinutes }}分钟</span>
-                  <span v-if="record.extraSeconds" class="time-badge">+{{ record.extraSeconds }}秒</span>
                 </td>
                 <td>
                   <img
@@ -263,6 +262,25 @@ const statistics = computed(() => {
   return stats
 })
 
+// 为每条记录计算随机结束时间和时长（用于打印显示）
+const recordsWithRandomTime = computed(() => {
+  return treatmentRecords.value.map((record: any) => {
+    const baseEndTime = dayjs(record.endTime)
+    const randomSeconds = Math.floor(Math.random() * 141) + 10 // 10-150秒
+    const endTimeWithRandom = baseEndTime.add(randomSeconds, 'second')
+
+    const durationMinutes = Math.round(
+      endTimeWithRandom.diff(dayjs(record.startTime)) / 60000
+    )
+
+    return {
+      ...record,
+      endTimeWithRandom: endTimeWithRandom.format('HH:mm:ss'),
+      durationMinutes
+    }
+  })
+})
+
 // 所有治疗师列表（去重）
 const allTherapists = computed(() => {
   const therapistMap = new Map<number, any>()
@@ -347,7 +365,7 @@ function formatDateOnly(date: string): string {
 }
 
 function formatTime(date: string): string {
-  return dayjs(date).format('HH:mm')
+  return dayjs(date).format('HH:mm:ss')
 }
 
 function getSignatureUrl(filename: string): string {
