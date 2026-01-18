@@ -102,7 +102,14 @@ async function generateQRCode() {
   if (!qrCanvas.value || !props.patient?.medicalRecordNo) return
 
   try {
-    const qrData = `/create-record?medicalNo=${props.patient.medicalRecordNo}`
+    // 获取移动端H5地址(从环境变量配置)
+    const mobileH5Url = import.meta.env.VITE_MOBILE_H5_URL || 'http://localhost:5173'
+
+    // 生成完整的H5 URL
+    const qrData = `${mobileH5Url}/#/pages/record/create?medicalNo=${props.patient.medicalRecordNo}`
+
+    console.log('生成二维码URL:', qrData)
+
     const pxSize = SIZE_MAP[selectedSize.value]
 
     // 生成二维码到canvas
