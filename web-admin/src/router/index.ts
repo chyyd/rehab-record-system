@@ -57,6 +57,12 @@ const routes: RouteRecordRaw[] = [
         name: 'Statistics',
         component: () => import('@/views/statistics/Statistics.vue'),
         meta: { title: '统计报表', icon: 'TrendCharts' }
+      },
+      {
+        path: 'backup',
+        name: 'Backup',
+        component: () => import('@/views/backup/Backup.vue'),
+        meta: { title: '备份管理', icon: 'FolderOpened', roles: ['admin'] }
       }
     ]
   }
