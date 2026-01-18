@@ -73,6 +73,9 @@ const downloading = ref(false)
 const copying = ref(false)
 const isPrinting = ref(false)
 
+// 二维码缓存
+const qrCache = new Map<string, string>()
+
 // 尺寸映射(cm转px,假设DPI=96,1cm≈37.8px)
 const SIZE_MAP: Record<string, number> = {
   '1.5cm': 57,
@@ -103,13 +106,40 @@ async function generateQRCode() {
   if (!qrCanvas.value || !props.patient?.medicalRecordNo) return
 
   try {
+    const cacheKey = `${props.patient.medicalRecordNo}_${selectedSize.value}`
+
+    // 检查缓存
+    if (qrCache.has(cacheKey)) {
+      console.log('从缓存加载二维码:', cacheKey)
+      const cachedDataUrl = qrCache.get(cacheKey)!
+
+      // 创建图片对象从缓存加载
+      const img = new Image()
+      img.onload = () => {
+        const ctx = qrCanvas.value?.getContext('2d')
+        if (ctx) {
+          const pxSize = SIZE_MAP[selectedSize.value]
+          ctx.clearRect(0, 0, qrCanvas.value!.width, qrCanvas.value!.height)
+          ctx.drawImage(img, 0, 0)
+
+          // 添加姓名文本
+          ctx.font = '12px Arial'
+          ctx.textAlign = 'center'
+          ctx.fillStyle = '#000000'
+          ctx.fillText(props.patient.name || '', pxSize / 2, pxSize + 15)
+        }
+      }
+      img.src = cachedDataUrl
+      return
+    }
+
     // 获取移动端H5地址(从环境变量配置)
     const mobileH5Url = import.meta.env.VITE_MOBILE_H5_URL || 'http://localhost:5173'
 
     // 生成完整的H5 URL
     const qrData = `${mobileH5Url}/#/pages/record/create?medicalNo=${props.patient.medicalRecordNo}`
 
-    console.log('生成二维码URL:', qrData)
+    console.log('生成新二维码URL:', qrData, '尺寸:', selectedSize.value)
 
     const pxSize = SIZE_MAP[selectedSize.value]
 
@@ -132,6 +162,11 @@ async function generateQRCode() {
       ctx.fillStyle = '#000000'
       ctx.fillText(props.patient.name || '', pxSize / 2, pxSize + 15)
     }
+
+    // 缓存生成的二维码
+    const dataUrl = qrCanvas.value.toDataURL('image/png')
+    qrCache.set(cacheKey, dataUrl)
+    console.log('二维码已缓存:', cacheKey)
   } catch (error) {
     console.error('QR Code generation failed:', error)
     ElMessage.error('二维码生成失败,请重试')
