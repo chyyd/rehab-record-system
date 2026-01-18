@@ -223,6 +223,19 @@ async function main() {
 
   console.log('✓ 创建患者完成');
 
+  // 初始化系统状态（确保只有一条记录）
+  const existingStatus = await prisma.systemStatus.findFirst();
+  if (!existingStatus) {
+    await prisma.systemStatus.create({
+      data: {
+        backupStatus: 'unknown',
+      },
+    });
+    console.log('✅ SystemStatus initialized');
+  } else {
+    console.log('ℹ️ SystemStatus already exists');
+  }
+
   console.log('\n数据库初始化完成！');
   console.log('\n测试账号：');
   console.log('管理员 - admin / 123456');
