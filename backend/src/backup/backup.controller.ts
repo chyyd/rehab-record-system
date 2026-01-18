@@ -31,4 +31,22 @@ export class BackupController {
       results,
     };
   }
+
+  @Get('available')
+  async getAvailableBackups() {
+    return this.backupService.getAvailableBackups();
+  }
+
+  @Post('restore')
+  async restoreBackup(@Body() dto: RestoreBackupDto) {
+    const results = await this.backupService.restoreBackup(
+      dto.backupDate,
+      dto.restoreTypes || ['database', 'config', 'photos'],
+    );
+    return {
+      success: true,
+      message: '恢复完成，请重启应用以生效',
+      results,
+    };
+  }
 }

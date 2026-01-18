@@ -64,9 +64,47 @@
               {{ row.duration ? `${row.duration}秒` : '-' }}
             </template>
           </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template #default="{ row }">
+              <el-button
+                v-if="row.status === 'success' && row.backupType === 'database'"
+                type="primary"
+                size="small"
+                @click="handleRestore(row)"
+              >
+                恢复
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
     </el-card>
+
+    <!-- 恢复确认对话框 -->
+    <el-dialog v-model="showRestoreDialog" title="⚠️ 确认恢复备份" width="500px">
+      <el-form>
+        <el-form-item label="备份日期">
+          <el-tag>{{ restoreBackupDate }}</el-tag>
+        </el-form-item>
+        <el-form-item label="恢复内容">
+          <el-checkbox-group v-model="restoreTypes">
+            <el-checkbox label="database">数据库</el-checkbox>
+            <el-checkbox label="config">配置文件</el-checkbox>
+            <el-checkbox label="photos">签名图片</el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-alert
+          title="⚠️ 恢复前会自动创建当前状态的备份"
+          type="warning"
+          :closable="false"
+          show-icon
+        />
+      </el-form>
+      <template #footer>
+        <el-button @click="showRestoreDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmRestore">确认恢复</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -82,6 +120,10 @@ const backupStatusType = ref('info')
 const databaseSize = ref(0)
 const photosCount = ref(0)
 const backupLogs = ref([])
+
+const showRestoreDialog = ref(false)
+const restoreBackupDate = ref('')
+const restoreTypes = ref(['database', 'config', 'photos'])
 
 onMounted(() => {
   loadBackupStatus()
@@ -136,6 +178,52 @@ async function handleManualBackup() {
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('备份失败: ' + error.message)
+    }
+  }
+}
+
+function handleRestore(row: any) {
+  const date = dayjs(row.backupDate).format('YYYY-MM-DD')
+  restoreBackupDate.value = date
+  restoreTypes.value = ['database', 'config', 'photos']
+  showRestoreDialog.value = true
+}
+
+async function confirmRestore() {
+  try {
+    if (restoreTypes.value.length === 0) {
+      ElMessage.warning('请至少选择一项恢复内容')
+      return
+    }
+
+    await ElMessageBox.confirm(
+      '恢复操作将覆盖当前数据，是否继续？',
+      '警告',
+      {
+        type: 'warning',
+        confirmButtonText: '确认恢复',
+        cancelButtonText: '取消',
+      }
+    )
+
+    const result = await request.post('/backup/restore', {
+      backupDate: restoreBackupDate.value,
+      restoreTypes: restoreTypes.value,
+    })
+
+    ElMessage.success({
+      message: '恢复完成！请重启应用以使更改生效',
+      duration: 5000,
+    })
+
+    showRestoreDialog.value = false
+
+    // 刷新数据
+    loadBackupStatus()
+    loadBackupLogs()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('恢复失败: ' + error.message)
     }
   }
 }

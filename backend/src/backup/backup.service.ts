@@ -230,4 +230,92 @@ export class BackupService {
       this.logger.log('Daily backup stopped');
     }
   }
+
+  async restoreBackup(backupDate: string, restoreTypes: string[]) {
+    const results = [];
+    const date = backupDate.replace(/-/g, '');
+
+    // 恢复前先备份当前状态
+    this.logger.log('Creating backup before restore...');
+    await this.manualBackup(['database', 'config', 'photos']);
+
+    for (const type of restoreTypes) {
+      try {
+        if (type === 'database') {
+          await this.restoreDatabase(date);
+          results.push({ type: 'database', status: 'success' });
+        } else if (type === 'config') {
+          await this.restoreConfig(date);
+          results.push({ type: 'config', status: 'success' });
+        } else if (type === 'photos') {
+          await this.restorePhotos(date);
+          results.push({ type: 'photos', status: 'success' });
+        }
+      } catch (error) {
+        this.logger.error(`Failed to restore ${type}:`, error);
+        results.push({ type, status: 'failed', error: error.message });
+      }
+    }
+
+    return results;
+  }
+
+  private async restoreDatabase(date: string): Promise<void> {
+    const backupPath = path.join(process.cwd(), 'backups', 'database', `database_${date}.db`);
+    const dbPath = this.configService.get<string>('DATABASE_URL').replace('file:', '');
+
+    this.logger.log(`Restoring database from ${backupPath}...`);
+    await fs.copyFile(backupPath, dbPath);
+    this.logger.log('✅ Database restored');
+  }
+
+  private async restoreConfig(date: string): Promise<void> {
+    const backupPath = path.join(process.cwd(), 'backups', 'config', `env_${date}`);
+    const envPath = path.join(process.cwd(), '.env');
+
+    this.logger.log(`Restoring config from ${backupPath}...`);
+    await fs.copyFile(backupPath, envPath);
+    this.logger.log('✅ Config restored');
+  }
+
+  private async restorePhotos(date: string): Promise<number> {
+    const backupDir = path.join(process.cwd(), 'backups', 'photos');
+    const targetDir = path.join(process.cwd(), 'uploads', 'photos');
+
+    this.logger.log(`Restoring photos from ${backupDir}...`);
+
+    await fs.mkdir(targetDir, { recursive: true });
+    const files = await fs.readdir(backupDir);
+    let restoredCount = 0;
+
+    for (const file of files) {
+      if (file === '.gitkeep') continue;
+      const sourcePath = path.join(backupDir, file);
+      const targetPath = path.join(targetDir, file);
+      await fs.copyFile(sourcePath, targetPath);
+      restoredCount++;
+    }
+
+    this.logger.log(`✅ Photos restored (${restoredCount} files)`);
+    return restoredCount;
+  }
+
+  async getAvailableBackups() {
+    const backupDir = path.join(process.cwd(), 'backups', 'database');
+    try {
+      const files = await fs.readdir(backupDir);
+      const backups = files
+        .filter(f => f.endsWith('.db'))
+        .map(f => {
+          const match = f.match(/database_(\d{8})\.db/);
+          return match ? match[1] : null;
+        })
+        .filter(Boolean)
+        .sort()
+        .reverse();
+      return backups;
+    } catch (error) {
+      return [];
+    }
+  }
 }
