@@ -2,49 +2,44 @@
   <view class="scan-container">
     <!-- H5环境提示 -->
     <!-- #ifdef H5 -->
-    <view class="h5-notice">
-      <view class="notice-icon">ℹ️</view>
-      <text class="notice-title">H5浏览器环境</text>
-      <text class="notice-desc">当前为浏览器环境，请使用以下方式：</text>
+    <view class="h5-scan-wrapper">
+      <!-- 权限未申请状态 -->
+      <view v-if="!permissionRequested" class="permission-guide">
+        <view class="guide-icon">📷</view>
+        <text class="guide-title">需要使用摄像头</text>
+        <text class="guide-desc">请允许浏览器访问摄像头以扫描二维码</text>
+        <button class="grant-btn" @click="requestCameraPermission">
+          允许使用摄像头
+        </button>
+      </view>
 
-      <view class="method-list">
-        <view class="method-item">
-          <text class="method-icon">1️⃣</text>
-          <view class="method-content">
-            <text class="method-title">使用手机扫码工具</text>
-            <text class="method-desc">用微信扫一扫、手机相机等扫描PC端二维码</text>
+      <!-- 扫码界面 -->
+      <view v-else class="qrcode-wrapper">
+        <div id="reader" class="qrcode-reader"></div>
+
+        <!-- 扫描框覆盖层 -->
+        <view class="scan-overlay">
+          <view class="scan-frame">
+            <view class="corner top-left"></view>
+            <view class="corner top-right"></view>
+            <view class="corner bottom-left"></view>
+            <view class="corner bottom-right"></view>
+            <view class="scan-line"></view>
           </view>
+          <text class="scan-tips">将二维码放入框内</text>
         </view>
 
-        <view class="method-item">
-          <text class="method-icon">2️⃣</text>
-          <view class="method-content">
-            <text class="method-title">复制二维码内容</text>
-            <text class="method-desc">在PC端查看控制台，复制JSON数据粘贴到下方</text>
-          </view>
-        </view>
-
-        <view class="method-item">
-          <text class="method-icon">3️⃣</text>
-          <view class="method-content">
-            <text class="method-title">手动输入病历号</text>
-            <text class="method-desc">直接输入6位病历号</text>
-          </view>
+        <!-- 控制按钮 -->
+        <view class="control-buttons">
+          <button class="stop-btn" @click="stopScanning">停止扫码</button>
+          <button class="switch-btn" @click="switchCamera">切换摄像头</button>
         </view>
       </view>
 
-      <!-- 输入框 -->
-      <view class="input-section">
-        <view class="input-group">
-          <input
-            class="qr-input"
-            v-model="inputValue"
-            placeholder="粘贴二维码内容或输入病历号"
-            @confirm="handleInputConfirm"
-          />
-          <button class="confirm-btn" @click="handleInputConfirm">确认</button>
-        </view>
-        <text class="input-hint">输入示例: {"type":"patient","medicalNo":"2024001","name":"张三"}</text>
+      <!-- 错误提示 -->
+      <view v-if="errorMessage" class="error-message">
+        <text class="error-text">{{ errorMessage }}</text>
+        <button class="retry-btn" @click="retryRequest">重试</button>
       </view>
     </view>
     <!-- #endif -->
@@ -89,12 +84,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+
+// #ifdef H5
+import { Html5Qrcode } from 'html5-qrcode'
+// #endif
 
 const scanResult = ref('')
 const isSuccess = ref(false)
 const inputValue = ref('')
+
+// #ifdef H5
+// H5扫码相关状态
+const permissionRequested = ref(false)  // 是否已请求权限
+const isScanning = ref(false)           // 是否正在扫码
+const html5QrCode = ref<Html5Qrcode | null>(null)  // Html5Qrcode实例
+const errorMessage = ref('')            // 错误信息
+const currentCamera = ref('environment') // 当前摄像头（后置/前置）
+const lastScannedText = ref('')         // 上次扫描的文本（防重复）
+const lastScannedTime = ref(0)          // 上次扫描时间（防重复）
+// #endif
 
 // 检测当前环境
 // #ifdef H5
@@ -115,6 +125,16 @@ onShow(() => {
 })
 
 /**
+ * 组件卸载时清理资源
+ */
+onUnmounted(async () => {
+  // #ifdef H5
+  await stopScanning()
+  html5QrCode.value = null
+  // #endif
+})
+
+/**
  * H5环境：确认输入
  */
 // #ifdef H5
@@ -131,6 +151,160 @@ function handleInputConfirm() {
 
   console.log('📝 用户输入:', value)
   processQRCodeData(value)
+}
+
+/**
+ * 检测摄像头权限状态
+ */
+async function checkCameraPermission(): Promise<boolean> {
+  try {
+    if (navigator.permissions) {
+      const result = await navigator.permissions.query({ name: 'camera' as PermissionName })
+      return result.state === 'granted'
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 请求摄像头权限并启动扫码
+ */
+async function requestCameraPermission() {
+  permissionRequested.value = true
+  errorMessage.value = ''
+
+  try {
+    await startScanning()
+  } catch (error: any) {
+    console.error('摄像头启动失败:', error)
+    handleCameraError(error)
+  }
+}
+
+/**
+ * 启动扫码
+ */
+async function startScanning() {
+  if (!html5QrCode.value) {
+    html5QrCode.value = new Html5Qrcode('reader')
+  }
+
+  const config = {
+    fps: 10,                    // 每秒帧数
+    qrbox: { width: 250, height: 250 },  // 扫码框大小
+    aspectRatio: 1.0
+  }
+
+  await html5QrCode.value.start(
+    { facingMode: currentCamera.value },  // 摄像头选择
+    config,
+    (decodedText: string) => {
+      // 扫码成功回调
+      handleScanSuccess(decodedText)
+    },
+    (errorMessage: string) => {
+      // 扫码过程中的警告（可忽略）
+      console.warn('扫码警告:', errorMessage)
+    }
+  )
+
+  isScanning.value = true
+  console.log('✅ 扫码已启动')
+}
+
+/**
+ * 扫码成功处理
+ */
+function handleScanSuccess(decodedText: string) {
+  const now = Date.now()
+
+  // 防止重复识别（2秒内相同内容）
+  if (decodedText === lastScannedText.value && now - lastScannedTime.value < 2000) {
+    console.log('⏭️ 跳过重复识别')
+    return
+  }
+
+  lastScannedText.value = decodedText
+  lastScannedTime.value = now
+
+  console.log('✅ 扫码成功:', decodedText)
+
+  // 震动反馈
+  if (navigator.vibrate) {
+    navigator.vibrate(200)
+  }
+
+  // 播放提示音
+  playBeepSound()
+
+  // 停止扫码
+  stopScanning()
+
+  // 处理二维码数据（复用现有逻辑）
+  processQRCodeData(decodedText)
+}
+
+/**
+ * 播放提示音
+ */
+function playBeepSound() {
+  // 暂时跳过提示音
+  console.log('🔊 提示音播放（跳过）')
+  return
+}
+
+/**
+ * 停止扫码
+ */
+async function stopScanning() {
+  if (html5QrCode.value && isScanning.value) {
+    try {
+      await html5QrCode.value.stop()
+      isScanning.value = false
+      console.log('⏹️ 扫码已停止')
+    } catch (error) {
+      console.error('停止扫码失败:', error)
+    }
+  }
+}
+
+/**
+ * 切换摄像头
+ */
+async function switchCamera() {
+  await stopScanning()
+  currentCamera.value = currentCamera.value === 'environment' ? 'user' : 'environment'
+  await startScanning()
+}
+
+/**
+ * 重试请求
+ */
+async function retryRequest() {
+  errorMessage.value = ''
+  permissionRequested.value = false
+  await requestCameraPermission()
+}
+
+/**
+ * 处理摄像头错误
+ */
+function handleCameraError(error: any) {
+  console.error('摄像头错误:', error)
+
+  if (error.name === 'NotAllowedError') {
+    errorMessage.value = '请在浏览器地址栏点击锁图标，允许访问摄像头'
+  } else if (error.name === 'NotFoundError') {
+    errorMessage.value = '未检测到摄像头设备'
+  } else if (error.name === 'NotReadableError') {
+    errorMessage.value = '摄像头可能被其他应用占用，请关闭后重试'
+  } else if (error.name === 'OverconstrainedError') {
+    errorMessage.value = '摄像头不满足要求'
+  } else {
+    errorMessage.value = `无法访问摄像头: ${error.message || '未知错误'}`
+  }
 }
 // #endif
 
@@ -312,113 +486,205 @@ $text-hint: #94a3b8;
   padding: 48rpx;
 }
 
-/* H5环境提示样式 */
-.h5-notice {
+/* H5环境扫码样式 */
+.h5-scan-wrapper {
   width: 100%;
-  max-width: 640rpx;
-  background: white;
-  border-radius: 24rpx;
-  padding: 48rpx;
-  margin-bottom: 48rpx;
-  box-shadow: 0 8rpx 32rpx rgba(14, 165, 233, 0.15);
-}
-
-.notice-icon {
-  font-size: 120rpx;
-  text-align: center;
-  margin-bottom: 24rpx;
-}
-
-.notice-title {
-  display: block;
-  font-size: 36rpx;
-  font-weight: 600;
-  color: $text-primary;
-  text-align: center;
-  margin-bottom: 16rpx;
-}
-
-.notice-desc {
-  display: block;
-  font-size: 28rpx;
-  color: $text-secondary;
-  text-align: center;
-  margin-bottom: 32rpx;
-}
-
-.method-list {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  background: #000;
 }
 
-.method-item {
-  display: flex;
-  gap: 24rpx;
-  padding: 24rpx;
-  background: #f8fafc;
-  border-radius: 16rpx;
-}
-
-.method-icon {
-  font-size: 48rpx;
-  flex-shrink: 0;
-}
-
-.method-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.method-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: $text-primary;
-}
-
-.method-desc {
-  font-size: 24rpx;
-  color: $text-secondary;
-  line-height: 1.5;
-}
-
-.input-section {
-  margin-top: 32rpx;
-}
-
-.input-group {
-  display: flex;
-  gap: 16rpx;
-  margin-bottom: 16rpx;
-}
-
-.qr-input {
+.permission-guide {
   flex: 1;
-  height: 80rpx;
-  padding: 0 24rpx;
-  background: white;
-  border: 2rpx solid #e2e8f0;
-  border-radius: 12rpx;
-  font-size: 26rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  background: #f5f5f5;
 }
 
-.confirm-btn {
-  height: 80rpx;
-  padding: 0 32rpx;
-  background: linear-gradient(135deg, $medical-blue 0%, $medical-teal 100%);
-  color: white;
-  border: none;
-  border-radius: 12rpx;
+.guide-icon {
+  font-size: 120rpx;
+  margin-bottom: 40rpx;
+}
+
+.guide-title {
+  font-size: 36rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.guide-desc {
   font-size: 28rpx;
-  font-weight: 600;
+  color: #666;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 60rpx;
 }
 
-.input-hint {
-  display: block;
-  font-size: 22rpx;
-  color: $text-hint;
+.grant-btn {
+  width: 500rpx;
+  height: 88rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  border: none;
+}
+
+.qrcode-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.qrcode-reader {
+  width: 100%;
+  height: 100%;
+}
+
+.qrcode-reader :deep(video) {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.scan-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.scan-frame {
+  position: relative;
+  width: 500rpx;
+  height: 500rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.3);
+}
+
+.corner {
+  position: absolute;
+  width: 40rpx;
+  height: 40rpx;
+  border-color: #00ff00;
+  border-style: solid;
+  border-width: 0;
+}
+
+.corner.top-left {
+  top: -4rpx;
+  left: -4rpx;
+  border-top-width: 6rpx;
+  border-left-width: 6rpx;
+}
+
+.corner.top-right {
+  top: -4rpx;
+  right: -4rpx;
+  border-top-width: 6rpx;
+  border-right-width: 6rpx;
+}
+
+.corner.bottom-left {
+  bottom: -4rpx;
+  left: -4rpx;
+  border-bottom-width: 6rpx;
+  border-left-width: 6rpx;
+}
+
+.corner.bottom-right {
+  bottom: -4rpx;
+  right: -4rpx;
+  border-bottom-width: 6rpx;
+  border-right-width: 6rpx;
+}
+
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 20rpx;
+  right: 20rpx;
+  height: 4rpx;
+  background: #00ff00;
+  animation: scan 2s linear infinite;
+}
+
+@keyframes scan {
+  0% { top: 20rpx; }
+  50% { top: calc(100% - 20rpx); }
+  100% { top: 20rpx; }
+}
+
+.scan-tips {
+  margin-top: 40rpx;
+  font-size: 28rpx;
+  color: #fff;
   text-align: center;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.5);
+}
+
+.control-buttons {
+  position: absolute;
+  bottom: 80rpx;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 20rpx;
+  pointer-events: auto;
+}
+
+.stop-btn,
+.switch-btn {
+  width: 200rpx;
+  height: 80rpx;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  border-radius: 40rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+.error-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 40rpx;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.error-text {
+  font-size: 28rpx;
+  color: #fff;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.retry-btn {
+  width: 200rpx;
+  height: 70rpx;
+  background: #667eea;
+  color: #fff;
+  border-radius: 35rpx;
+  font-size: 28rpx;
+  border: none;
 }
 
 /* 真机环境样式 */

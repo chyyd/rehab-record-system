@@ -48,3 +48,7 @@ backups/
 
 # Workflow
 .spec-workflow/
+
+# SSL Certificates
+mobile-frontend/certs/*.pem
+mobile-frontend/certs/req.cnf

@@ -1,0 +1,14 @@
+0:13:58.358 项目 mobile-frontend 编译成功。
+20:13:58.365 运行方式：打开 HBuilderX, 导入 dist\dev\app-plus 运行。
+20:13:58.366 ready in 212873ms.
+20:13:59.552 手机端调试基座版本号为4.87, 版本号相同，跳过基座更新
+20:14:00.159 正在建立手机连接...
+20:14:01.239 正在同步手机端程序文件...
+20:14:02.373 同步手机端程序文件完成
+20:14:03.699 正在启动HBuilder调试基座...
+20:14:04.660 应用【mobile-frontend】已启动
+20:14:04.771 User Store initialized, API_BASE:,  http://192.168.10.5:3000 at stores/user.ts:7
+20:14:04.818 运行环境:,  小程序/App at stores/user.ts:12
+20:14:04.944 reportJSException >>>> exception function:createInstanceContext, exception:white screen cause create instanceContext failed,check js stack ->Uncaught TypeError: Cannot read property 'userAgent' of undefined
+ at  (app-service.js:27826:63)
+ at  (app-service.js:29691:3)
