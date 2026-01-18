@@ -1,4 +1,4 @@
-import { IsArray, IsEnum, IsString } from 'class-validator';
+import { IsArray, IsEnum, IsString, IsOptional } from 'class-validator';
 import { BackupType } from './backup.dto';
 
 export class RestoreBackupDto {

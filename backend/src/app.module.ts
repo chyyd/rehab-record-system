@@ -9,6 +9,7 @@ import { AssessmentsModule } from './assessments/assessments.module';
 import { PhotosModule } from './photos/photos.module';
 import { PrintModule } from './print/print.module';
 import { StatisticsModule } from './statistics/statistics.module';
+import { BackupModule } from './backup/backup.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { StatisticsModule } from './statistics/statistics.module';
     PhotosModule,
     PrintModule,
     StatisticsModule,
+    BackupModule,
   ],
 })
 export class AppModule {}
