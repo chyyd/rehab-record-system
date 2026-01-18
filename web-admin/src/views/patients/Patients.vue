@@ -68,6 +68,7 @@
                 编辑
               </el-button>
               <el-button
+                v-if="!row.dischargeDate"
                 type="info"
                 size="small"
                 @click="handleQRCode(row)"
