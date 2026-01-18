@@ -323,4 +323,33 @@ export class PatientsService {
     // TODO: 将来需要实现治疗处方功能后，这里返回今日待做的治疗项目
     return [];
   }
+
+  /**
+   * 根据病历号查询患者
+   */
+  async findByMedicalRecordNo(medicalRecordNo: string) {
+    try {
+      const patient = await this.prisma.patient.findUnique({
+        where: { medicalRecordNo },
+        include: {
+          assessments: false,
+          treatmentRecords: false,
+        },
+      });
+
+      if (!patient) {
+        return null;
+      }
+
+      // 检查患者是否在院
+      if (patient.dischargeDate) {
+        throw new Error('该患者已出院');
+      }
+
+      return patient;
+    } catch (error) {
+      console.error(`根据病历号查询患者失败: ${error.message}`);
+      throw error;
+    }
+  }
 }
