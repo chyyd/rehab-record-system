@@ -497,23 +497,23 @@ async function handleSignatureConfirm(imageData: string) {
       uni.showToast({
         title: '保存成功',
         icon: 'success',
-        duration: 1500
+        duration: 2000
       })
 
+      // 等待 toast 显示完成后跳转
       setTimeout(() => {
-        // 🆕 根据来源决定跳转逻辑
-        if (fromPage.value === 'scan') {
-          // 从扫码页面来的，跳转到患者列表
-          console.log('🔄 从扫码页面来，跳转到患者列表')
-          uni.redirectTo({
-            url: '/pages/patients/list'
-          })
-        } else {
-          // 从其他页面来的，返回上一页
-          console.log('🔄 返回上一页')
-          uni.navigateBack()
-        }
-      }, 1500)
+        console.log('🔄 保存成功，跳转到扫码页面')
+        // 使用 reLaunch 关闭所有页面，打开扫码页面
+        uni.reLaunch({
+          url: '/pages/scan/scan',
+          success: () => {
+            console.log('✅ 跳转扫码页面成功')
+          },
+          fail: (err: any) => {
+            console.error('❌ 跳转扫码页面失败:', err)
+          }
+        })
+      }, 2000)
     } else {
       throw new Error(response.data?.message || '保存失败')
     }
