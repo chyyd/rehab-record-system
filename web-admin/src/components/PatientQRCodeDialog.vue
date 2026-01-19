@@ -47,7 +47,7 @@
 import { ref, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download, CopyDocument, Printer } from '@element-plus/icons-vue'
-import QRCode from 'qrcode'
+import * as QRCode from 'qrcode'
 import { debounce } from 'lodash-es'
 
 // Props
@@ -133,14 +133,10 @@ async function generateQRCode() {
       return
     }
 
-    // 生成二维码数据(JSON格式,方便移动端扫码解析)
-    const qrData = JSON.stringify({
-      type: 'patient',
-      medicalNo: props.patient.medicalRecordNo,
-      name: props.patient.name
-    })
+    // 生成二维码数据(纯病历号格式,简化扫码)
+    const qrData = props.patient.medicalRecordNo
 
-    console.log('生成新二维码数据:', qrData, '尺寸:', selectedSize.value)
+    console.log('生成新二维码数据:', qrData, '尺寸:', selectedSize.value, '纠错级别: M (约15%纠错能力)')
 
     const pxSize = SIZE_MAP[selectedSize.value]
 
@@ -148,7 +144,7 @@ async function generateQRCode() {
     await QRCode.toCanvas(qrCanvas.value, qrData, {
       width: pxSize,
       margin: 1,
-      errorCorrectionLevel: 'H',
+      errorCorrectionLevel: 'M',
       color: {
         dark: '#000000',
         light: '#FFFFFF'

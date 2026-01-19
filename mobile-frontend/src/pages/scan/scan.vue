@@ -1,33 +1,31 @@
 <template>
   <view class="scan-container">
-    <!-- H5环境提示 -->
+    <!-- H5环境扫码界面 -->
     <!-- #ifdef H5 -->
     <view class="h5-scan-wrapper">
-      <!-- 权限未申请状态 -->
-      <view v-if="!permissionRequested" class="permission-guide">
+      <!-- 权限引导界面 -->
+      <view v-if="!isScanning" class="permission-guide">
         <view class="guide-icon">📷</view>
-        <text class="guide-title">需要使用摄像头</text>
-        <text class="guide-desc">请允许浏览器访问摄像头以扫描二维码</text>
-        <button class="grant-btn" @click="requestCameraPermission">
-          允许使用摄像头
+        <text class="guide-title">扫描患者二维码</text>
+        <text class="guide-desc">请允许浏览器访问摄像头</text>
+        <button class="grant-btn" @click="startScanning">
+          开始扫码
         </button>
       </view>
 
       <!-- 扫码界面 -->
-      <view v-else class="qrcode-wrapper">
+      <view v-else class="scan-wrapper">
         <div id="reader" class="qrcode-reader"></div>
 
-        <!-- 扫描框覆盖层 -->
-        <view class="scan-overlay">
-          <view class="scan-frame"></view>
-          <text class="scan-tips">将二维码放入框内</text>
+        <!-- 提示文字 -->
+        <view class="scan-tips">
+          <text class="tips-text">将二维码对准摄像头</text>
         </view>
-      </view>
 
-      <!-- 错误提示 -->
-      <view v-if="errorMessage" class="error-message">
-        <text class="error-text">{{ errorMessage }}</text>
-        <button class="retry-btn" @click="retryRequest">重试</button>
+        <!-- 停止按钮 -->
+        <view class="control-buttons">
+          <button class="stop-btn" @click="stopScanning">停止扫码</button>
+        </view>
       </view>
     </view>
     <!-- #endif -->
@@ -68,25 +66,20 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted, nextTick } from 'vue'
-import { onShow, onHide } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 
 // #ifdef H5
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 // #endif
 
 const scanResult = ref('')
 const isSuccess = ref(false)
-const inputValue = ref('')
 
 // #ifdef H5
 // H5扫码相关状态
-const permissionRequested = ref(false)  // 是否已请求权限
-const isScanning = ref(false)           // 是否正在扫码
-const html5QrCode = ref<Html5Qrcode | null>(null)  // Html5Qrcode实例
-const errorMessage = ref('')            // 错误信息
-const currentCamera = ref('environment') // 当前摄像头（后置/前置）
-const lastScannedText = ref('')         // 上次扫描的文本（防重复）
-const lastScannedTime = ref(0)          // 上次扫描时间（防重复）
+const isScanning = ref(false)
+const html5QrCode = ref<Html5Qrcode | null>(null)
+const errorMessage = ref('')
 // #endif
 
 // 检测当前环境
@@ -102,36 +95,11 @@ console.log('📱 当前环境: 真机/App')
 onShow(() => {
   console.log('📱 扫码页面显示')
 
-  // #ifdef H5
-  // H5环境：如果之前已授权但扫码已停止，重置状态让用户重新启动
-  if (permissionRequested.value && !isScanning.value && html5QrCode.value) {
-    console.log('🔄 检测到扫码已停止，清理实例')
-    // 清理旧实例
-    stopScanning().catch(err => {
-      console.warn('停止扫码失败:', err)
-    })
-    html5QrCode.value = null
-    // 重置状态，显示权限引导界面，让用户重新点击启动
-    permissionRequested.value = false
-    isScanning.value = false
-  }
-  // #endif
-
   // #ifndef H5
   // 真机环境可以选择自动扫码
   // autoScan()
   // #endif
 })
-
-/**
- * 页面隐藏时停止扫码
- */
-// #ifdef H5
-onHide(async () => {
-  console.log('📱 扫码页面隐藏，停止扫码')
-  await stopScanning()
-})
-// #endif
 
 /**
  * 组件卸载时清理资源
@@ -150,142 +118,185 @@ onUnmounted(async () => {
   // #endif
 })
 
-/**
- * H5环境：确认输入
- */
 // #ifdef H5
-function handleInputConfirm() {
-  const value = inputValue.value.trim()
-
-  if (!value) {
-    uni.showToast({
-      title: '请输入内容',
-      icon: 'none'
-    })
-    return
-  }
-
-  console.log('📝 用户输入:', value)
-  processQRCodeData(value)
-}
-
-/**
- * 检测摄像头权限状态
- */
-async function checkCameraPermission(): Promise<boolean> {
-  try {
-    if (navigator.permissions) {
-      const result = await navigator.permissions.query({ name: 'camera' as PermissionName })
-      return result.state === 'granted'
-    }
-    return false
-  } catch {
-    return false
-  }
-}
-
-/**
- * 请求摄像头权限并启动扫码
- */
-async function requestCameraPermission() {
-  permissionRequested.value = true
-  errorMessage.value = ''
-
-  // 等待DOM更新，确保#reader元素已渲染
-  await nextTick()
-
-  // 再等待一小段时间，确保浏览器完全渲染
-  await new Promise(resolve => setTimeout(resolve, 100))
-
-  try {
-    await startScanning()
-  } catch (error: any) {
-    console.error('摄像头启动失败:', error)
-    handleCameraError(error)
-  }
-}
-
 /**
  * 启动扫码
  */
 async function startScanning() {
+  console.log('🚀 ========== 按钮已点击，开始启动H5扫码 ==========')
+
+  // 先设置状态，让DOM渲染
+  isScanning.value = true
+  console.log('🔄 已设置 isScanning = true，等待DOM渲染...')
+
+  // 等待Vue完成DOM更新
+  await nextTick()
+  console.log('✅ Vue DOM已更新')
+
+  // 再等待一小段时间确保浏览器完成渲染
+  await new Promise(resolve => setTimeout(resolve, 100))
+  console.log('✅ 浏览器渲染完成')
+
   // 检查DOM元素是否存在
   const readerElement = document.getElementById('reader')
   if (!readerElement) {
+    console.error('❌ 扫码容器元素未找到')
+    console.log('💡 提示：请确保#reader元素已渲染')
+    isScanning.value = false // 恢复状态
     throw new Error('扫码容器元素未找到')
   }
 
+  // 检查DOM元素是否存在
+
+  console.log('✅ DOM元素已找到，容器尺寸:', {
+    width: readerElement.clientWidth,
+    height: readerElement.clientHeight
+  })
+
+  // 创建Html5Qrcode实例（带详细日志和格式支持）
   if (!html5QrCode.value) {
-    html5QrCode.value = new Html5Qrcode('reader')
+    console.log('📦 创建Html5Qrcode实例')
+    html5QrCode.value = new Html5Qrcode('reader', {
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE], // 只扫描QR码
+      verbose: true // 开启详细日志
+    })
   }
 
-  // 获取容器的实际尺寸
-  const containerWidth = readerElement.clientWidth || window.innerWidth
-  const containerHeight = readerElement.clientHeight || window.innerHeight
-  const scanSize = Math.min(containerWidth, containerHeight) * 0.7
-
+  // Pro Mode标准配置（根据官方文档优化）
   const config = {
-    fps: 10,
-    qrbox: {
-      width: Math.floor(scanSize),
-      height: Math.floor(scanSize)
+    fps: 10, // 每秒扫描帧数
+    qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+      // 动态计算扫描区域大小，取最小边的70%
+      const minEdgePercentage = 0.7
+      const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight)
+      const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage)
+
+      console.log('📐 动态计算扫描区域:', {
+        viewfinder: { width: viewfinderWidth, height: viewfinderHeight },
+        qrboxSize
+      })
+
+      return {
+        width: qrboxSize,
+        height: qrboxSize
+      }
     },
-    aspectRatio: 1.0
+    aspectRatio: 1.777778, // 宽高比 16:9（移动端标准）
+    disableFlip: false // 不禁用镜像（某些设备需要）
   }
 
-  await html5QrCode.value.start(
-    { facingMode: currentCamera.value },
-    config,
-    (decodedText: string) => {
-      handleScanSuccess(decodedText)
-    },
-    (errorMessage: string) => {
-      console.warn('扫码警告:', errorMessage)
+  console.log('📋 扫码配置:', config)
+
+  try {
+    // 先枚举所有可用的摄像头
+    console.log('📷 正在枚举可用摄像头...')
+    const cameras = await Html5Qrcode.getCameras()
+    console.log('📷 发现的摄像头列表:', cameras)
+
+    let cameraId: string | { facingMode: string }
+
+    if (cameras && cameras.length) {
+      // 查找后置摄像头（优先选择包含'back'或'rear'标签的）
+      const backCamera = cameras.find((camera: any) =>
+        camera.label && (
+          camera.label.toLowerCase().includes('back') ||
+          camera.label.toLowerCase().includes('rear') ||
+          camera.label.toLowerCase().includes('后置') ||
+          camera.label.toLowerCase().includes('0') // 很多设备后置摄像头是camera0
+        )
+      )
+
+      if (backCamera) {
+        cameraId = backCamera.id
+        console.log('✅ 找到后置摄像头:', {
+          id: backCamera.id,
+          label: backCamera.label
+        })
+      } else {
+        // 如果没找到明确的后置摄像头，使用第一个摄像头
+        cameraId = cameras[0].id
+        console.log('⚠️ 未找到明确的后置摄像头，使用第一个摄像头:', {
+          id: cameras[0].id,
+          label: cameras[0].label
+        })
+      }
+    } else {
+      // 如果枚举失败，回退到facingMode方式
+      cameraId = { facingMode: 'environment' }
+      console.log('⚠️ 摄像头枚举失败，使用facingMode方式')
     }
-  )
 
-  isScanning.value = true
+    console.log('🎯 使用摄像头配置:', cameraId)
 
-  // 启动后调整video样式，确保完全填充
-  setTimeout(() => {
-    const video = readerElement.querySelector('video')
-    if (video) {
-      video.style.objectFit = 'cover'
-      video.style.width = '100%'
-      video.style.height = '100%'
-      video.style.position = 'absolute'
-      video.style.top = '0'
-      video.style.left = '0'
-    }
-  }, 100)
+    // 启动摄像头
+    await html5QrCode.value.start(
+      cameraId,
+      config,
+      (decodedText: string, decodedResult: any) => {
+        // 成功回调 - 标准签名：(decodedText, decodedResult)
+        console.log('✅✅✅ 扫码成功触发！✅✅✅')
+        console.log('📝 解码文本:', decodedText)
+        console.log('📦 完整结果:', JSON.stringify(decodedResult, null, 2))
 
-  console.log('✅ 扫码已启动')
+        // 震动反馈
+        if (navigator.vibrate) {
+          navigator.vibrate(200)
+        }
+
+        handleScanSuccess(decodedText)
+      },
+      (errorMessage: string) => {
+        // 错误回调 - 扫码过程中的每一帧失败都会调用
+        // 这是正常的，说明库正在持续扫描
+        // 只在verbose模式下打印详细错误
+        if (errorMessage.includes('No barcode or QR code detected')) {
+          // 这是正常情况，说明正在扫描但还没找到二维码
+          // 降低日志频率，避免刷屏
+          if (Math.random() < 0.01) { // 只打印1%的日志
+            console.log('🔍 正在扫描中...')
+          }
+        } else {
+          console.warn('⚠️ 扫码警告:', errorMessage)
+        }
+      }
+    )
+
+    isScanning.value = true
+    console.log('✅ 扫码已启动')
+
+    // 启动后调整video样式，确保完全填充
+    setTimeout(() => {
+      const video = readerElement.querySelector('video')
+      if (video) {
+        video.style.objectFit = 'cover'
+        video.style.width = '100%'
+        video.style.height = '100%'
+        video.style.position = 'absolute'
+        video.style.top = '0'
+        video.style.left = '0'
+        console.log('🎬 Video样式已调整')
+      } else {
+        console.warn('⚠️ 未找到video元素')
+      }
+    }, 100)
+
+  } catch (error: any) {
+    console.error('❌ 启动扫码失败:', error)
+    handleCameraError(error)
+    throw error
+  }
 }
 
 /**
  * 扫码成功处理
  */
 function handleScanSuccess(decodedText: string) {
-  const now = Date.now()
-
-  // 防止重复识别（2秒内相同内容）
-  if (decodedText === lastScannedText.value && now - lastScannedTime.value < 2000) {
-    console.log('⏭️ 跳过重复识别')
-    return
-  }
-
-  lastScannedText.value = decodedText
-  lastScannedTime.value = now
-
-  console.log('✅ 扫码成功:', decodedText)
+  console.log('✅ 扫码成功识别:', decodedText)
 
   // 震动反馈
   if (navigator.vibrate) {
     navigator.vibrate(200)
   }
-
-  // 播放提示音
-  playBeepSound()
 
   // 停止扫码
   stopScanning()
@@ -295,52 +306,26 @@ function handleScanSuccess(decodedText: string) {
 }
 
 /**
- * 播放提示音
- */
-function playBeepSound() {
-  // 暂时跳过提示音
-  console.log('🔊 提示音播放（跳过）')
-  return
-}
-
-/**
  * 停止扫码
  */
 async function stopScanning() {
+  console.log('⏹️ 停止扫码')
   if (html5QrCode.value && isScanning.value) {
     try {
       await html5QrCode.value.stop()
       isScanning.value = false
-      console.log('⏹️ 扫码已停止')
+      console.log('✅ 扫码已停止')
     } catch (error) {
-      console.error('停止扫码失败:', error)
+      console.error('❌ 停止扫码失败:', error)
     }
   }
-}
-
-/**
- * 切换摄像头
- */
-async function switchCamera() {
-  await stopScanning()
-  currentCamera.value = currentCamera.value === 'environment' ? 'user' : 'environment'
-  await startScanning()
-}
-
-/**
- * 重试请求
- */
-async function retryRequest() {
-  errorMessage.value = ''
-  permissionRequested.value = false
-  await requestCameraPermission()
 }
 
 /**
  * 处理摄像头错误
  */
 function handleCameraError(error: any) {
-  console.error('摄像头错误:', error)
+  console.error('❌ 摄像头错误:', error)
 
   if (error.name === 'NotAllowedError') {
     errorMessage.value = '请在浏览器地址栏点击锁图标，允许访问摄像头'
@@ -353,6 +338,13 @@ function handleCameraError(error: any) {
   } else {
     errorMessage.value = `无法访问摄像头: ${error.message || '未知错误'}`
   }
+
+  // 显示错误提示
+  uni.showToast({
+    title: errorMessage.value,
+    icon: 'none',
+    duration: 3000
+  })
 }
 // #endif
 
@@ -594,7 +586,8 @@ $text-hint: #94a3b8;
   cursor: pointer;
 }
 
-.qrcode-wrapper {
+.scan-wrapper {
+  flex: 1;
   position: relative;
   width: 100%;
   height: 100%;
@@ -606,16 +599,18 @@ $text-hint: #94a3b8;
   height: 100%;
   position: relative;
   background: #000;
+  overflow: hidden;
 }
 
-/* 强制video元素完全填充容器 */
+/* 确保html5-qrcode容器完全填充 */
 .qrcode-reader :deep(#reader) {
   width: 100% !important;
   height: 100% !important;
   position: relative !important;
 }
 
-.qrcode-reader :deep(#reader video) {
+/* 强制video元素完全填充容器 */
+.qrcode-reader :deep(video) {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
@@ -624,7 +619,6 @@ $text-hint: #94a3b8;
   left: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
-  transform: none !important;
 }
 
 /* 隐藏html5-qrcode自带的扫描区域指示器 */
@@ -636,47 +630,15 @@ $text-hint: #94a3b8;
   display: none !important;
 }
 
-.scan-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  z-index: 100;
-}
-
-.scan-frame {
-  position: relative;
-  width: 70vw;
-  max-width: 500rpx;
-  height: 70vw;
-  max-height: 500rpx;
-  box-sizing: border-box;
-  background: transparent;
-  opacity: 0;
-}
-
-.scan-tips {
-  margin-top: 0;
-  font-size: 26rpx;
-  color: #fff;
-  text-align: center;
-  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.5);
-  white-space: nowrap;
-}
-
 .control-buttons {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   display: flex;
+  flex-direction: column;
   justify-content: center;
+  align-items: center;
   gap: 16rpx;
   pointer-events: auto;
   padding: 32rpx;
@@ -685,52 +647,34 @@ $text-hint: #94a3b8;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
 }
 
-.stop-btn,
-.switch-btn {
-  flex: 1;
-  max-width: 220rpx;
-  height: 80rpx;
-  background: rgba(255, 255, 255, 0.95);
-  color: #333;
-  border-radius: 40rpx;
-  font-size: 28rpx;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
-}
-
-.error-message {
+.scan-tips {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.9);
-  padding: 48rpx 32rpx;
-  border-radius: 16rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24rpx;
-  max-width: 80%;
-  z-index: 1000;
+  z-index: 10;
+  pointer-events: none;
 }
 
-.error-text {
-  font-size: 28rpx;
+.scan-tips .tips-text {
+  font-size: 32rpx;
   color: #fff;
   text-align: center;
-  line-height: 1.6;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
 }
 
-.retry-btn {
-  width: 200rpx;
-  height: 72rpx;
-  background: #667eea;
-  color: #fff;
-  border-radius: 36rpx;
-  font-size: 28rpx;
+.stop-btn {
+  width: 80%;
+  max-width: 400rpx;
+  height: 88rpx;
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  border-radius: 44rpx;
+  font-size: 32rpx;
   border: none;
   cursor: pointer;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
 }
 
 /* 真机环境样式 */
