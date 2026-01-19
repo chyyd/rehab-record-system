@@ -1,0 +1,68 @@
+日志里真正致命的是最后这一行：
+
+```
+reportJSException >>>> exception function:createInstanceContext, exception:white screen cause createInstanceContext failed,check js stack ->Uncaught TypeError: Cannot read property 'userAgent' of undefined
+```
+
+**白屏根因**：  
+代码里某处直接读取了 `navigator.userAgent`，但在 **小程序/App 环境** 里并没有 `navigator` 对象，导致运行时报错，框架直接终止了页面实例的创建，于是出现“白屏”。
+
+---
+
+### 一、快速定位
+1. 全局搜 `userAgent`（大小写都要搜）。  
+2. 重点看 `app-service.js:27816` 附近（这是打包后的行号，对应源码一般在 `src/utils` 或 `src/stores` 里）。  
+3. 大概率会看到类似：
+
+```js
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+```
+
+---
+
+### 二、立即修复（兼容写法）
+
+```js
+// 工具函数：getEnv.js
+export function getUserAgent() {
+  // #ifdef H5
+  return navigator.userAgent;
+  // #endif
+  // #ifndef H5
+  return '';   // 小程序/App 返回空串，后续正则不会命中
+  // #endif
+}
+
+// 使用处
+import { getUserAgent } from '@/utils/getEnv';
+const ua = getUserAgent();
+const isIOS = /iPad|iPhone|iPod/.test(ua);
+```
+
+如果你只是用来判断平台，更推荐直接用 uni-app 官方 API：
+
+```js
+// 完全不用 userAgent
+const systemInfo = uni.getSystemInfoSync();
+const isIOS = systemInfo.platform === 'ios';
+```
+
+---
+
+### 三、验证步骤
+1. 改完代码 → 重新 `npm run dev:%platform%`（或 HBuilderX 点“重新运行”）。  
+2. 控制台不再出现 `userAgent` 报错 → 白屏消失。  
+3. 真机/模拟器确认页面正常渲染。
+
+---
+
+### 四、顺带把 Sass 警告也清掉（可选）
+- 把 `src/App.vue:72` 的  
+  `@import '@/static/styles/global.scss';`  
+  改成  
+  `@use '@/static/styles/global.scss' as *;`  
+  并确认 `global.scss` 里不再用 `@import`，即可消除 `Dart Sass 3.0` 的废弃提示。
+
+---
+
+按上面两步改完，白屏和警告都会消失。如还有别的报错，把新的日志贴出来继续看即可。

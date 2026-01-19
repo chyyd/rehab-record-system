@@ -12,6 +12,9 @@ import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const statusBarHeight = ref(0)
 
+// 🆕 全局标志：是否已经检查过登录状态（防止重复检查）
+const hasCheckedLogin = ref(false)
+
 // 检测是否是H5环境
 const isH5 = typeof window !== 'undefined' && typeof document !== 'undefined'
 
@@ -27,17 +30,29 @@ onLaunch(() => {
     statusBarHeight.value = 0
   }
 
-  // 初始化用户store（从本地存储恢复登录状态）
+  // 🔄 先初始化用户store（从本地存储恢复登录状态）
   userStore.init()
 
-  // 检查登录状态 - 延迟执行以避免页面冲突
+  // ✅ 等待下一个tick，确保store已初始化
   setTimeout(() => {
-    checkLoginStatus()
-  }, 100)
+    // 🆕 检查是否已经检查过（防止onLaunch重复触发）
+    if (!hasCheckedLogin.value) {
+      hasCheckedLogin.value = true
+      checkLoginStatus()
+    } else {
+      console.log('⚠️ onLaunch重复触发，跳过登录检查')
+    }
+  }, 50)
 })
 
 onShow(() => {
   console.log('App Show')
+
+  // 🆕 H5环境下，onShow可能被重复触发，需要防止重复检查
+  if (isH5 && hasCheckedLogin.value) {
+    console.log('✅ 已检查过登录状态，跳过重复检查')
+    return
+  }
 })
 
 onHide(() => {
@@ -50,37 +65,61 @@ function checkLoginStatus() {
     const currentPage = pages[pages.length - 1]
     const currentRoute = currentPage?.route || ''
 
-    console.log('当前页面:', currentRoute)
+    console.log('🔍 checkLoginStatus - 当前页面:', currentRoute)
+    console.log('🔍 Token存在:', userStore.token ? '✅ 是' : '❌ 否')
+    console.log('🔍 UserInfo存在:', userStore.userInfo ? '✅ 是' : '❌ 否')
 
-    // 如果已经在登录页，不需要跳转
+    // ⚠️ 如果已经在登录页，不需要跳转
     if (currentRoute.includes('login')) {
-      console.log('已在登录页，跳过检查')
+      console.log('✅ 已在登录页，跳过检查')
       return
     }
 
-    // 使用userStore检查登录状态
+    // 🔄 使用userStore检查登录状态
     const isLoggedIn = userStore.isLoggedIn()
-    console.log('登录状态:', isLoggedIn ? '已登录' : '未登录')
+    console.log('🔍 登录状态检查结果:', isLoggedIn ? '已登录 ✅' : '未登录 ❌')
 
     if (!isLoggedIn) {
-      console.log('未登录，跳转到登录页')
-      // 未登录，跳转到登录页
+      console.log('⚠️ 未登录，需要跳转到登录页')
+
+      // 🚨 未登录，跳转到登录页（使用reLaunch清空页面栈）
       uni.reLaunch({
         url: '/pages/login/login'
       })
     } else {
-      console.log('已登录，恢复用户信息')
+      console.log('✅ 已登录，保持当前状态')
+
       // 如果有token但没有用户信息，尝试获取
       if (!userStore.userInfo) {
+        console.log('⚠️ Token存在但无用户信息，尝试获取...')
         userStore.getUserInfo().catch(err => {
-          console.error('获取用户信息失败:', err)
-          // 如果获取用户信息失败，可能token已过期，需要重新登录
-          userStore.logout()
+          console.error('❌ 获取用户信息失败:', err)
+          console.log('⚠️ Token可能已过期，需要重新登录')
+
+          // 如果获取用户信息失败，可能token已过期，清除本地数据
+          userStore.token = ''
+          userStore.userInfo = null
+
+          // 清除本地存储
+          if (isH5) {
+            localStorage.removeItem('token')
+            localStorage.removeItem('userInfo')
+          } else {
+            uni.removeStorageSync('token')
+            uni.removeStorageSync('userInfo')
+          }
+
+          // 跳转到登录页
+          uni.reLaunch({
+            url: '/pages/login/login'
+          })
         })
+      } else {
+        console.log('✅ 用户信息完整，登录状态正常')
       }
     }
   } catch (e) {
-    console.error('检查登录状态失败:', e)
+    console.error('❌ 检查登录状态失败:', e)
   }
 }
 </script>

@@ -1,50 +1,31 @@
 <template>
   <view class="scan-container">
-    <!-- H5环境提示 -->
+    <!-- H5环境扫码界面 -->
     <!-- #ifdef H5 -->
-    <view class="h5-notice">
-      <view class="notice-icon">ℹ️</view>
-      <text class="notice-title">H5浏览器环境</text>
-      <text class="notice-desc">当前为浏览器环境，请使用以下方式：</text>
-
-      <view class="method-list">
-        <view class="method-item">
-          <text class="method-icon">1️⃣</text>
-          <view class="method-content">
-            <text class="method-title">使用手机扫码工具</text>
-            <text class="method-desc">用微信扫一扫、手机相机等扫描PC端二维码</text>
-          </view>
-        </view>
-
-        <view class="method-item">
-          <text class="method-icon">2️⃣</text>
-          <view class="method-content">
-            <text class="method-title">复制二维码内容</text>
-            <text class="method-desc">在PC端查看控制台，复制JSON数据粘贴到下方</text>
-          </view>
-        </view>
-
-        <view class="method-item">
-          <text class="method-icon">3️⃣</text>
-          <view class="method-content">
-            <text class="method-title">手动输入病历号</text>
-            <text class="method-desc">直接输入6位病历号</text>
-          </view>
-        </view>
+    <view class="h5-scan-wrapper">
+      <!-- 权限引导界面 -->
+      <view v-if="!isScanning" class="permission-guide">
+        <view class="guide-icon">📷</view>
+        <text class="guide-title">扫描患者二维码</text>
+        <text class="guide-desc">请允许浏览器访问摄像头</text>
+        <button class="grant-btn" @click="startScanning">
+          开始扫码
+        </button>
       </view>
 
-      <!-- 输入框 -->
-      <view class="input-section">
-        <view class="input-group">
-          <input
-            class="qr-input"
-            v-model="inputValue"
-            placeholder="粘贴二维码内容或输入病历号"
-            @confirm="handleInputConfirm"
-          />
-          <button class="confirm-btn" @click="handleInputConfirm">确认</button>
+      <!-- 扫码界面 -->
+      <view v-else class="scan-wrapper">
+        <div id="reader" class="qrcode-reader"></div>
+
+        <!-- 提示文字 -->
+        <view class="scan-tips">
+          <text class="tips-text">将二维码对准摄像头</text>
         </view>
-        <text class="input-hint">输入示例: {"type":"patient","medicalNo":"2024001","name":"张三"}</text>
+
+        <!-- 停止按钮 -->
+        <view class="control-buttons">
+          <button class="stop-btn" @click="stopScanning">停止扫码</button>
+        </view>
       </view>
     </view>
     <!-- #endif -->
@@ -74,11 +55,6 @@
         <text>点击扫码</text>
       </button>
       <!-- #endif -->
-
-      <button class="manual-btn" @click="handleManualInput">
-        <text class="btn-icon">✏️</text>
-        <text>手动输入病历号</text>
-      </button>
     </view>
 
     <!-- 扫码结果提示 -->
@@ -89,12 +65,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { ref, onUnmounted, nextTick } from 'vue'
+import { onShow, onHide } from '@dcloudio/uni-app'
+
+// #ifdef H5
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+// #endif
 
 const scanResult = ref('')
 const isSuccess = ref(false)
-const inputValue = ref('')
+
+// #ifdef H5
+// H5扫码相关状态
+const isScanning = ref(false)
+const html5QrCode = ref<Html5Qrcode | null>(null)
+const errorMessage = ref('')
+// #endif
 
 // 检测当前环境
 // #ifdef H5
@@ -108,29 +94,278 @@ console.log('📱 当前环境: 真机/App')
 // 页面显示
 onShow(() => {
   console.log('📱 扫码页面显示')
+
   // #ifndef H5
   // 真机环境可以选择自动扫码
   // autoScan()
   // #endif
 })
 
-/**
- * H5环境：确认输入
- */
 // #ifdef H5
-function handleInputConfirm() {
-  const value = inputValue.value.trim()
+/**
+ * 页面隐藏时清理资源
+ * onHide 在页面跳转、tab 切换、系统返回键等情况下触发
+ */
+onHide(async () => {
+  console.log('🔄 页面隐藏，停止扫码')
 
-  if (!value) {
-    uni.showToast({
-      title: '请输入内容',
-      icon: 'none'
-    })
-    return
+  // 停止扫码并释放摄像头
+  if (html5QrCode.value && isScanning.value) {
+    try {
+      await html5QrCode.value.stop()
+      isScanning.value = false
+      console.log('✅ 页面隐藏时扫码已停止')
+    } catch (error) {
+      console.warn('⚠️ 页面隐藏时停止扫码失败:', error)
+    }
+  }
+})
+// #endif
+
+/**
+ * 组件卸载时清理资源
+ */
+onUnmounted(async () => {
+  // #ifdef H5
+  await stopScanning()
+  if (html5QrCode.value) {
+    try {
+      await html5QrCode.value.clear()
+    } catch (err) {
+      console.warn('清理扫码实例失败:', err)
+    }
+    html5QrCode.value = null
+  }
+  // #endif
+})
+
+// #ifdef H5
+/**
+ * 启动扫码
+ */
+async function startScanning() {
+  console.log('🚀 ========== 按钮已点击，开始启动H5扫码 ==========')
+
+  // 先设置状态，让DOM渲染
+  isScanning.value = true
+  console.log('🔄 已设置 isScanning = true，等待DOM渲染...')
+
+  // 等待Vue完成DOM更新
+  await nextTick()
+  console.log('✅ Vue DOM已更新')
+
+  // 再等待一小段时间确保浏览器完成渲染
+  await new Promise(resolve => setTimeout(resolve, 100))
+  console.log('✅ 浏览器渲染完成')
+
+  // 检查DOM元素是否存在
+  const readerElement = document.getElementById('reader')
+  if (!readerElement) {
+    console.error('❌ 扫码容器元素未找到')
+    console.log('💡 提示：请确保#reader元素已渲染')
+    isScanning.value = false // 恢复状态
+    throw new Error('扫码容器元素未找到')
   }
 
-  console.log('📝 用户输入:', value)
-  processQRCodeData(value)
+  // 检查DOM元素是否存在
+
+  console.log('✅ DOM元素已找到，容器尺寸:', {
+    width: readerElement.clientWidth,
+    height: readerElement.clientHeight
+  })
+
+  // 创建Html5Qrcode实例（带详细日志和格式支持）
+  if (!html5QrCode.value) {
+    console.log('📦 创建Html5Qrcode实例')
+    html5QrCode.value = new Html5Qrcode('reader', {
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE], // 只扫描QR码
+      verbose: true // 开启详细日志
+    })
+  }
+
+  // Pro Mode标准配置（根据官方文档优化）
+  const config = {
+    fps: 10, // 每秒扫描帧数
+    qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+      // 动态计算扫描区域大小，取最小边的70%
+      const minEdgePercentage = 0.7
+      const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight)
+      const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage)
+
+      console.log('📐 动态计算扫描区域:', {
+        viewfinder: { width: viewfinderWidth, height: viewfinderHeight },
+        qrboxSize
+      })
+
+      return {
+        width: qrboxSize,
+        height: qrboxSize
+      }
+    },
+    aspectRatio: 1.777778, // 宽高比 16:9（移动端标准）
+    disableFlip: false // 不禁用镜像（某些设备需要）
+  }
+
+  console.log('📋 扫码配置:', config)
+
+  try {
+    // 先枚举所有可用的摄像头
+    console.log('📷 正在枚举可用摄像头...')
+    const cameras = await Html5Qrcode.getCameras()
+    console.log('📷 发现的摄像头列表:', cameras)
+
+    let cameraId: string | { facingMode: string }
+
+    if (cameras && cameras.length) {
+      // 查找后置摄像头（优先选择包含'back'或'rear'标签的）
+      const backCamera = cameras.find((camera: any) =>
+        camera.label && (
+          camera.label.toLowerCase().includes('back') ||
+          camera.label.toLowerCase().includes('rear') ||
+          camera.label.toLowerCase().includes('后置') ||
+          camera.label.toLowerCase().includes('0') // 很多设备后置摄像头是camera0
+        )
+      )
+
+      if (backCamera) {
+        cameraId = backCamera.id
+        console.log('✅ 找到后置摄像头:', {
+          id: backCamera.id,
+          label: backCamera.label
+        })
+      } else {
+        // 如果没找到明确的后置摄像头，使用第一个摄像头
+        cameraId = cameras[0].id
+        console.log('⚠️ 未找到明确的后置摄像头，使用第一个摄像头:', {
+          id: cameras[0].id,
+          label: cameras[0].label
+        })
+      }
+    } else {
+      // 如果枚举失败，回退到facingMode方式
+      cameraId = { facingMode: 'environment' }
+      console.log('⚠️ 摄像头枚举失败，使用facingMode方式')
+    }
+
+    console.log('🎯 使用摄像头配置:', cameraId)
+
+    // 启动摄像头
+    await html5QrCode.value.start(
+      cameraId,
+      config,
+      (decodedText: string, decodedResult: any) => {
+        // 成功回调 - 标准签名：(decodedText, decodedResult)
+        console.log('✅✅✅ 扫码成功触发！✅✅✅')
+        console.log('📝 解码文本:', decodedText)
+        console.log('📦 完整结果:', JSON.stringify(decodedResult, null, 2))
+
+        // 震动反馈
+        if (navigator.vibrate) {
+          navigator.vibrate(200)
+        }
+
+        handleScanSuccess(decodedText)
+      },
+      (errorMessage: string) => {
+        // 错误回调 - 扫码过程中的每一帧失败都会调用
+        // 这是正常的，说明库正在持续扫描
+        // 只在verbose模式下打印详细错误
+        if (errorMessage.includes('No barcode or QR code detected')) {
+          // 这是正常情况，说明正在扫描但还没找到二维码
+          // 降低日志频率，避免刷屏
+          if (Math.random() < 0.01) { // 只打印1%的日志
+            console.log('🔍 正在扫描中...')
+          }
+        } else {
+          console.warn('⚠️ 扫码警告:', errorMessage)
+        }
+      }
+    )
+
+    isScanning.value = true
+    console.log('✅ 扫码已启动')
+
+    // 启动后调整video样式，确保完全填充
+    setTimeout(() => {
+      const video = readerElement.querySelector('video')
+      if (video) {
+        video.style.objectFit = 'cover'
+        video.style.width = '100%'
+        video.style.height = '100%'
+        video.style.position = 'absolute'
+        video.style.top = '0'
+        video.style.left = '0'
+        console.log('🎬 Video样式已调整')
+      } else {
+        console.warn('⚠️ 未找到video元素')
+      }
+    }, 100)
+
+  } catch (error: any) {
+    console.error('❌ 启动扫码失败:', error)
+    handleCameraError(error)
+    throw error
+  }
+}
+
+/**
+ * 扫码成功处理
+ */
+function handleScanSuccess(decodedText: string) {
+  console.log('✅ 扫码成功识别:', decodedText)
+
+  // 震动反馈
+  if (navigator.vibrate) {
+    navigator.vibrate(200)
+  }
+
+  // 停止扫码
+  stopScanning()
+
+  // 处理二维码数据（复用现有逻辑）
+  processQRCodeData(decodedText)
+}
+
+/**
+ * 停止扫码
+ */
+async function stopScanning() {
+  console.log('⏹️ 停止扫码')
+  if (html5QrCode.value && isScanning.value) {
+    try {
+      await html5QrCode.value.stop()
+      isScanning.value = false
+      console.log('✅ 扫码已停止')
+    } catch (error) {
+      console.error('❌ 停止扫码失败:', error)
+    }
+  }
+}
+
+/**
+ * 处理摄像头错误
+ */
+function handleCameraError(error: any) {
+  console.error('❌ 摄像头错误:', error)
+
+  if (error.name === 'NotAllowedError') {
+    errorMessage.value = '请在浏览器地址栏点击锁图标，允许访问摄像头'
+  } else if (error.name === 'NotFoundError') {
+    errorMessage.value = '未检测到摄像头设备'
+  } else if (error.name === 'NotReadableError') {
+    errorMessage.value = '摄像头可能被其他应用占用，请关闭后重试'
+  } else if (error.name === 'OverconstrainedError') {
+    errorMessage.value = '摄像头不满足要求'
+  } else {
+    errorMessage.value = `无法访问摄像头: ${error.message || '未知错误'}`
+  }
+
+  // 显示错误提示
+  uni.showToast({
+    title: errorMessage.value,
+    icon: 'none',
+    duration: 3000
+  })
 }
 // #endif
 
@@ -180,10 +415,10 @@ function processQRCodeData(result: string) {
         icon: 'success'
       })
 
-      // 跳转到创建记录页面
+      // 跳转到创建记录页面，标记来源为扫码
       setTimeout(() => {
         uni.navigateTo({
-          url: `/pages/record/create?medicalNo=${data.medicalNo}`
+          url: `/pages/record/create?medicalNo=${data.medicalNo}&from=scan`
         })
       }, 500)
     } else {
@@ -205,7 +440,7 @@ function processQRCodeData(result: string) {
 
       setTimeout(() => {
         uni.navigateTo({
-          url: `/pages/record/create?medicalNo=${match[1]}`
+          url: `/pages/record/create?medicalNo=${match[1]}&from=scan`
         })
       }, 500)
     } else {
@@ -220,7 +455,7 @@ function processQRCodeData(result: string) {
 
         setTimeout(() => {
           uni.navigateTo({
-            url: `/pages/record/create?medicalNo=${result}`
+            url: `/pages/record/create?medicalNo=${result}&from=scan`
           })
         }, 500)
       } else {
@@ -312,113 +547,155 @@ $text-hint: #94a3b8;
   padding: 48rpx;
 }
 
-/* H5环境提示样式 */
-.h5-notice {
-  width: 100%;
-  max-width: 640rpx;
-  background: white;
-  border-radius: 24rpx;
-  padding: 48rpx;
-  margin-bottom: 48rpx;
-  box-shadow: 0 8rpx 32rpx rgba(14, 165, 233, 0.15);
+/* H5环境扫码样式 */
+.h5-scan-wrapper {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
 }
 
-.notice-icon {
-  font-size: 120rpx;
-  text-align: center;
-  margin-bottom: 24rpx;
+.permission-guide {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
 }
 
-.notice-title {
-  display: block;
-  font-size: 36rpx;
-  font-weight: 600;
-  color: $text-primary;
-  text-align: center;
-  margin-bottom: 16rpx;
-}
-
-.notice-desc {
-  display: block;
-  font-size: 28rpx;
-  color: $text-secondary;
-  text-align: center;
+.guide-icon {
+  font-size: 100rpx;
   margin-bottom: 32rpx;
 }
 
-.method-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-
-.method-item {
-  display: flex;
-  gap: 24rpx;
-  padding: 24rpx;
-  background: #f8fafc;
-  border-radius: 16rpx;
-}
-
-.method-icon {
-  font-size: 48rpx;
-  flex-shrink: 0;
-}
-
-.method-content {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.method-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: $text-primary;
-}
-
-.method-desc {
-  font-size: 24rpx;
-  color: $text-secondary;
-  line-height: 1.5;
-}
-
-.input-section {
-  margin-top: 32rpx;
-}
-
-.input-group {
-  display: flex;
-  gap: 16rpx;
+.guide-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
   margin-bottom: 16rpx;
-}
-
-.qr-input {
-  flex: 1;
-  height: 80rpx;
-  padding: 0 24rpx;
-  background: white;
-  border: 2rpx solid #e2e8f0;
-  border-radius: 12rpx;
-  font-size: 26rpx;
-}
-
-.confirm-btn {
-  height: 80rpx;
-  padding: 0 32rpx;
-  background: linear-gradient(135deg, $medical-blue 0%, $medical-teal 100%);
-  color: white;
-  border: none;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  font-weight: 600;
-}
-
-.input-hint {
-  display: block;
-  font-size: 22rpx;
-  color: $text-hint;
   text-align: center;
+}
+
+.guide-desc {
+  font-size: 26rpx;
+  color: #666;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 48rpx;
+  max-width: 600rpx;
+}
+
+.grant-btn {
+  width: 80%;
+  max-width: 500rpx;
+  height: 88rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  border: none;
+  cursor: pointer;
+}
+
+.scan-wrapper {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.qrcode-reader {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: #000;
+  overflow: hidden;
+}
+
+/* 确保html5-qrcode容器完全填充 */
+.qrcode-reader :deep(#reader) {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+/* 强制video元素完全填充容器 */
+.qrcode-reader :deep(video) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 隐藏html5-qrcode自带的扫描区域指示器 */
+.qrcode-reader :deep(#reader__dashboard_section_csr) {
+  display: none !important;
+}
+
+.qrcode-reader :deep(#reader__dashboard) {
+  display: none !important;
+}
+
+.control-buttons {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 16rpx;
+  pointer-events: auto;
+  padding: 32rpx;
+  padding-bottom: max(32rpx, env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+}
+
+.scan-tips {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.scan-tips .tips-text {
+  font-size: 32rpx;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.stop-btn {
+  width: 80%;
+  max-width: 400rpx;
+  height: 88rpx;
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.3);
 }
 
 /* 真机环境样式 */

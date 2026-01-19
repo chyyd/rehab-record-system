@@ -99,8 +99,17 @@ const saving = ref(false)
 const showSignature = ref(false)
 const signatureImage = ref('')
 
+// 🆕 记录页面来源（用于决定返回逻辑）
+const fromPage = ref('')
+
 onLoad(async (options: any) => {
   console.log('📱 治疗记录页面 onLoad, options:', options)
+
+  // 🆕 保存页面来源
+  if (options.from) {
+    fromPage.value = options.from
+    console.log('📌 页面来源:', fromPage.value)
+  }
 
   if (options.patientId) {
     patientId.value = parseInt(options.patientId)
@@ -492,7 +501,18 @@ async function handleSignatureConfirm(imageData: string) {
       })
 
       setTimeout(() => {
-        uni.navigateBack()
+        // 🆕 根据来源决定跳转逻辑
+        if (fromPage.value === 'scan') {
+          // 从扫码页面来的，跳转到患者列表
+          console.log('🔄 从扫码页面来，跳转到患者列表')
+          uni.redirectTo({
+            url: '/pages/patients/list'
+          })
+        } else {
+          // 从其他页面来的，返回上一页
+          console.log('🔄 返回上一页')
+          uni.navigateBack()
+        }
       }, 1500)
     } else {
       throw new Error(response.data?.message || '保存失败')
