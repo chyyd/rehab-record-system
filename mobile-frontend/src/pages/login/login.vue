@@ -164,15 +164,12 @@ async function handleLogin() {
 
     // 跳转到患者列表（首页）
     setTimeout(() => {
-      console.log('跳转到患者列表')
-      if (isH5) {
-        // H5环境使用location.hash
-        window.location.hash = '#/pages/patients/list'
-      } else {
-        uni.switchTab({
-          url: '/pages/patients/list'
-        })
-      }
+      console.log('✅ 登录成功，跳转到患者列表')
+
+      // 🔄 使用 reLaunch 清空页面栈，避免返回到登录页
+      uni.reLaunch({
+        url: '/pages/patients/list'
+      })
     }, 500)
   } catch (error: any) {
     console.error('登录失败:', error)

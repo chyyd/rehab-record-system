@@ -66,7 +66,7 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted, nextTick } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onHide } from '@dcloudio/uni-app'
 
 // #ifdef H5
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
@@ -100,6 +100,27 @@ onShow(() => {
   // autoScan()
   // #endif
 })
+
+// #ifdef H5
+/**
+ * 页面隐藏时清理资源
+ * onHide 在页面跳转、tab 切换、系统返回键等情况下触发
+ */
+onHide(async () => {
+  console.log('🔄 页面隐藏，停止扫码')
+
+  // 停止扫码并释放摄像头
+  if (html5QrCode.value && isScanning.value) {
+    try {
+      await html5QrCode.value.stop()
+      isScanning.value = false
+      console.log('✅ 页面隐藏时扫码已停止')
+    } catch (error) {
+      console.warn('⚠️ 页面隐藏时停止扫码失败:', error)
+    }
+  }
+})
+// #endif
 
 /**
  * 组件卸载时清理资源
@@ -394,10 +415,10 @@ function processQRCodeData(result: string) {
         icon: 'success'
       })
 
-      // 跳转到创建记录页面
+      // 跳转到创建记录页面，标记来源为扫码
       setTimeout(() => {
         uni.navigateTo({
-          url: `/pages/record/create?medicalNo=${data.medicalNo}`
+          url: `/pages/record/create?medicalNo=${data.medicalNo}&from=scan`
         })
       }, 500)
     } else {
@@ -419,7 +440,7 @@ function processQRCodeData(result: string) {
 
       setTimeout(() => {
         uni.navigateTo({
-          url: `/pages/record/create?medicalNo=${match[1]}`
+          url: `/pages/record/create?medicalNo=${match[1]}&from=scan`
         })
       }, 500)
     } else {
@@ -434,7 +455,7 @@ function processQRCodeData(result: string) {
 
         setTimeout(() => {
           uni.navigateTo({
-            url: `/pages/record/create?medicalNo=${result}`
+            url: `/pages/record/create?medicalNo=${result}&from=scan`
           })
         }, 500)
       } else {

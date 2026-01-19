@@ -30,6 +30,7 @@
     "sass-embedded": "^1.97.2",
     "typescript": "^5.4.5",
     "vite": "5.4.21",
+    "vite-plugin-pwa": "^1.2.0",
     "vue-tsc": "^2.0.7"
   },
   "keywords": [
