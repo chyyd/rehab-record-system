@@ -1,5 +1,7 @@
 <template>
   <view class="signature-modal" v-if="visible">
+    <!-- H5环境：完整的签字界面 -->
+    <!-- #ifdef H5 -->
     <view class="signature-landscape">
       <view class="signature-header">
         <text class="header-title">患者签字确认</text>
@@ -21,12 +23,28 @@
         </view>
       </view>
     </view>
+    <!-- #endif -->
+
+    <!-- App环境：提示暂不支持 -->
+    <!-- #ifndef H5 -->
+    <view class="app-not-supported">
+      <view class="unsupported-icon">✍️</view>
+      <text class="unsupported-title">App环境暂不支持签字功能</text>
+      <text class="unsupported-desc">请使用H5版本进行扫码和创建记录</text>
+      <view class="action-btn primary" @click="confirm">
+        <text class="btn-text">直接确认（测试用）</text>
+      </view>
+    </view>
+    <!-- #endif -->
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
+
+// #ifdef H5
 import SmoothSignature from 'smooth-signature'
+// #endif
 
 const props = defineProps<{
   visible: boolean
@@ -38,8 +56,20 @@ const emit = defineEmits<{
 }>()
 
 const canvasWrapperId = 'canvas-wrapper-' + Date.now()
+
+// #ifdef H5
 const signature = ref<SmoothSignature | null>(null)
 const canvas = ref<HTMLCanvasElement | null>(null)
+// #endif
+
+// 检测当前环境
+// #ifdef H5
+console.log('✍️ 签名组件环境: H5浏览器')
+// #endif
+
+// #ifndef H5
+console.log('✍️ 签名组件环境: App（暂不支持）')
+// #endif
 
 watch(() => props.visible, (newVal) => {
   if (newVal) {
@@ -53,6 +83,7 @@ watch(() => props.visible, (newVal) => {
   }
 })
 
+// #ifdef H5
 function initSignature() {
   console.log('开始初始化SmoothSignature')
 
@@ -158,6 +189,7 @@ function confirm() {
   }
 }
 
+// #ifdef H5
 function cleanupSignature() {
   const wrapper = document.getElementById(canvasWrapperId)
   if (wrapper) {
@@ -166,11 +198,36 @@ function cleanupSignature() {
   signature.value = null
   canvas.value = null
 }
+// #endif
+
+// #ifndef H5
+// App环境：模拟清理函数
+function cleanupSignature() {
+  console.log('🧹 App环境清理签名组件')
+}
+// #endif
 
 function closeModal() {
   cleanupSignature()
   emit('close')
 }
+
+// #ifndef H5
+// App环境：直接确认（测试用）
+function confirm() {
+  console.log('⚠️ App环境跳过签字，直接确认')
+  uni.showModal({
+    title: '确认操作',
+    content: 'App环境不支持签字功能，是否直接确认？',
+    success: (res: any) => {
+      if (res.confirm) {
+        console.log('✅ 用户确认，返回空白签名数据')
+        emit('confirm', '')  // 返回空字符串
+      }
+    }
+  })
+}
+// #endif
 
 onBeforeUnmount(() => {
   cleanupSignature()
@@ -302,4 +359,36 @@ onBeforeUnmount(() => {
     }
   }
 }
+
+// App环境：不支持提示界面样式
+// #ifndef H5
+.app-not-supported {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  text-align: center;
+}
+
+.unsupported-icon {
+  font-size: 120rpx;
+  margin-bottom: 32rpx;
+}
+
+.unsupported-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16rpx;
+}
+
+.unsupported-desc {
+  font-size: 26rpx;
+  color: #64748b;
+  margin-bottom: 48rpx;
+}
+// #endif
 </style>
