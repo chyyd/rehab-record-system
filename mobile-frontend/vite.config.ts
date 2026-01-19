@@ -67,7 +67,8 @@ export default defineConfig({
         // 开发环境禁用预缓存
         navigateFallback: null
       },
-      // 开发环境禁用 PWA
+      // 🆕 完全禁用开发环境的 PWA（包括 App 和 H5）
+      disable: process.env.NODE_ENV === 'development',
       devOptions: {
         enabled: false  // 生产环境才启用
       }
