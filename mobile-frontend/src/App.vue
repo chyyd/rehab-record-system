@@ -12,6 +12,9 @@ import { useUserStore } from '@/stores/user'
 const userStore = useUserStore()
 const statusBarHeight = ref(0)
 
+// 🆕 全局标志：是否已经检查过登录状态（防止重复检查）
+const hasCheckedLogin = ref(false)
+
 // 检测是否是H5环境
 const isH5 = typeof window !== 'undefined' && typeof document !== 'undefined'
 
@@ -32,12 +35,24 @@ onLaunch(() => {
 
   // ✅ 等待下一个tick，确保store已初始化
   setTimeout(() => {
-    checkLoginStatus()
+    // 🆕 检查是否已经检查过（防止onLaunch重复触发）
+    if (!hasCheckedLogin.value) {
+      hasCheckedLogin.value = true
+      checkLoginStatus()
+    } else {
+      console.log('⚠️ onLaunch重复触发，跳过登录检查')
+    }
   }, 50)
 })
 
 onShow(() => {
   console.log('App Show')
+
+  // 🆕 H5环境下，onShow可能被重复触发，需要防止重复检查
+  if (isH5 && hasCheckedLogin.value) {
+    console.log('✅ 已检查过登录状态，跳过重复检查')
+    return
+  }
 })
 
 onHide(() => {
