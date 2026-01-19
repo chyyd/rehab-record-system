@@ -69,7 +69,8 @@ import { ref, onUnmounted, nextTick } from 'vue'
 import { onShow, onHide } from '@dcloudio/uni-app'
 
 // #ifdef H5
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+// 动态导入html5-qrcode，避免App环境加载问题
+// import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
 // #endif
 
 const scanResult = ref('')
@@ -78,7 +79,7 @@ const isSuccess = ref(false)
 // #ifdef H5
 // H5扫码相关状态
 const isScanning = ref(false)
-const html5QrCode = ref<Html5Qrcode | null>(null)
+const html5QrCode = ref<any>(null)
 const errorMessage = ref('')
 // #endif
 
@@ -176,6 +177,11 @@ async function startScanning() {
 
   // 创建Html5Qrcode实例（带详细日志和格式支持）
   if (!html5QrCode.value) {
+    console.log('📦 动态加载html5-qrcode库')
+
+    // 动态导入Html5Qrcode，避免App环境加载问题
+    const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode')
+
     console.log('📦 创建Html5Qrcode实例')
     html5QrCode.value = new Html5Qrcode('reader', {
       formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE], // 只扫描QR码
