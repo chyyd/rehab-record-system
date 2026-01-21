@@ -34,6 +34,10 @@
 
     <!-- 搜索栏 -->
     <view class="search-bar">
+      <button class="add-patient-btn" @click="goToAddPatient">
+        <text class="add-icon">+</text>
+        <text class="add-text">新增</text>
+      </button>
       <view class="search-input">
         <text class="search-icon">🔍</text>
         <input
@@ -45,52 +49,89 @@
         />
         <text v-if="searchQuery" class="clear-btn" @click="clearSearch">×</text>
       </view>
-      <button class="add-patient-btn" @click="goToAddPatient">
-        <text class="add-icon">+</text>
-        <text class="add-text">新增</text>
-      </button>
     </view>
 
-    <!-- 患者列表 -->
-    <view class="patient-list" v-if="patients.length > 0">
-      <view
-        class="patient-item"
-        v-for="patient in patients"
-        :key="patient.id"
-        @click="viewPatient(patient)"
+    <!-- 患者列表容器 -->
+    <view class="patient-list-container" v-if="patients.length > 0">
+      <!-- 患者列表 -->
+      <scroll-view
+        class="patient-list-scroll"
+        scroll-y
+        :scroll-into-view="scrollIntoViewId"
+        scroll-with-animation
       >
-        <view class="patient-header">
-          <view class="patient-name-row">
-            <text class="patient-name">{{ patient.name }}</text>
-            <view class="patient-tag">{{ patient.gender }}</view>
-          </view>
-          <text class="medical-record">{{ patient.medicalRecordNo }}</text>
-        </view>
+        <view class="patient-list">
+          <!-- 按字母分组显示患者 -->
+          <view
+            v-for="letter in alphabet"
+            :key="letter"
+            :id="'section-' + letter"
+            class="patient-section"
+          >
+            <!-- 字母标题 -->
+            <view
+              v-if="indexedPatients.get(letter) && indexedPatients.get(letter)!.length > 0"
+              class="section-header"
+            >
+              <text class="section-letter">{{ letter }}</text>
+            </view>
 
-        <view class="patient-info">
-          <view class="info-item">
-            <text class="info-label">年龄:</text>
-            <text class="info-value">{{ patient.age }}岁</text>
-          </view>
-          <view class="info-item">
-            <text class="info-label">医保:</text>
-            <text class="info-value">{{ patient.insuranceType }}</text>
-          </view>
-        </view>
+            <!-- 该字母下的患者列表 -->
+            <view
+              class="patient-item"
+              v-for="patient in (indexedPatients.get(letter) || [])"
+              :key="patient.id"
+              @click="viewPatient(patient)"
+            >
+              <view class="patient-header">
+                <view class="patient-name-row">
+                  <text class="patient-name">{{ patient.name }}</text>
+                  <view class="patient-tag age-tag">{{ patient.age }}岁</view>
+                  <view class="patient-tag">{{ patient.gender }}</view>
+                </view>
+                <text class="medical-record">{{ patient.medicalRecordNo }}</text>
+              </view>
 
-        <view class="patient-diagnosis">
-          <text class="diagnosis-label">诊断:</text>
-          <text class="diagnosis-text">{{ patient.diagnosis }}</text>
-        </view>
+              <view class="patient-diagnosis">
+                <text class="diagnosis-label">诊断:</text>
+                <text class="diagnosis-text">{{ patient.diagnosis }}</text>
+              </view>
 
-        <view class="patient-actions">
-          <button class="action-btn primary" size="mini" @click.stop="createRecord(patient)">
-            创建记录
-          </button>
-          <button class="action-btn" size="mini" @click.stop="viewHistory(patient)">
-            历史记录
-          </button>
+              <view class="patient-actions">
+                <button class="action-btn primary" size="mini" @click.stop="createRecord(patient)">
+                  创建记录
+                </button>
+                <button class="action-btn" size="mini" @click.stop="viewHistory(patient)">
+                  历史记录
+                </button>
+              </view>
+            </view>
+          </view>
         </view>
+      </scroll-view>
+
+      <!-- 字母索引条 -->
+      <view
+        class="alphabet-index"
+        @touchstart="handleTouchStart"
+        @touchmove="handleTouchMove"
+        @touchend="handleTouchEnd"
+      >
+        <view
+          v-for="letter in activeLetters"
+          :key="letter"
+          :data-letter="letter"
+          class="index-item"
+          @click="handleLetterClick(letter)"
+          @touchstart.stop="handleTouchStart($event, letter)"
+        >
+          <text class="index-letter">{{ letter }}</text>
+        </view>
+      </view>
+
+      <!-- 字母指示器 -->
+      <view class="letter-indicator" v-if="showLetterIndicator">
+        <text class="indicator-letter">{{ currentLetter }}</text>
       </view>
     </view>
 
@@ -110,11 +151,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { usePatientStore } from '@/stores/patient'
 import { request } from '@/utils/request'
+import { pinyin } from 'pinyin-pro'
 
 const userStore = useUserStore()
 const patientStore = usePatientStore()
@@ -131,6 +173,98 @@ let searchTimer: any = null
 const showHistoryModal = ref(false)
 const selectedPatientId = ref<number>(0)
 const todayPatientRecords = ref<any[]>([])
+
+// 字母索引相关
+const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+const currentLetter = ref('')
+const showLetterIndicator = ref(false)
+const indexedPatients = ref<Map<string, any[]>>(new Map())
+const scrollIntoViewId = ref('')
+
+// 获取患者的拼音首字母
+function getPatientPinyin(patient: any): string {
+  const name = patient.name || ''
+  if (!name) return '#'
+
+  try {
+    const firstChar = name.charAt(0)
+    // 如果是英文字母，直接返回大写
+    if (/^[a-zA-Z]$/.test(firstChar)) {
+      return firstChar.toUpperCase()
+    }
+    // 否则使用拼音
+    const py = pinyin(firstChar, { pattern: 'first', type: 'array' }) as string[]
+    return py && py.length > 0 ? py[0].toUpperCase() : '#'
+  } catch (e) {
+    console.error('拼音转换失败:', e)
+    return '#'
+  }
+}
+
+// 按字母分组患者
+function groupPatientsByLetter(patientList: any[]) {
+  const groups = new Map<string, any[]>()
+
+  // 初始化所有字母的空数组
+  alphabet.forEach(letter => {
+    groups.set(letter, [])
+  })
+  groups.set('#', [])
+
+  patientList.forEach(patient => {
+    const letter = getPatientPinyin(patient)
+    const group = groups.get(letter) || groups.get('#')!
+    group.push(patient)
+  })
+
+  return groups
+}
+
+// 计算有患者的字母列表
+const activeLetters = computed(() => {
+  return alphabet.filter(letter => {
+    const group = indexedPatients.value.get(letter)
+    return group && group.length > 0
+  })
+})
+
+// 点击字母索引
+function handleLetterClick(letter: string) {
+  currentLetter.value = letter
+  showLetterIndicator.value = true
+  scrollIntoViewId.value = `section-${letter}`
+
+  // 2秒后隐藏指示器
+  setTimeout(() => {
+    showLetterIndicator.value = false
+  }, 2000)
+}
+
+// 触摸字母索引开始
+function handleTouchStart(event: any, letter: string) {
+  handleLetterClick(letter)
+}
+
+// 触摸字母索引移动
+function handleTouchMove(event: any) {
+  const touch = event.touches[0]
+  const element = document.elementFromPoint(touch.clientX, touch.clientY)
+
+  if (element && element.dataset.letter) {
+    const letter = element.dataset.letter
+    // 检查是否是活跃字母
+    if (letter && activeLetters.value.includes(letter)) {
+      handleLetterClick(letter)
+    }
+  }
+}
+
+// 触摸结束
+function handleTouchEnd() {
+  setTimeout(() => {
+    showLetterIndicator.value = false
+  }, 500)
+}
 
 // 处理401错误，跳转到登录页
 function handleUnauthorizedError() {
@@ -191,6 +325,8 @@ async function loadPatients() {
     if (response.statusCode === 200) {
       allPatients.value = response.data
       patients.value = response.data
+      // 更新字母分组
+      indexedPatients.value = groupPatientsByLetter(response.data)
     } else if (response.statusCode === 401) {
       handleUnauthorizedError()
     } else {
@@ -217,6 +353,7 @@ function handleSearch() {
   // 如果搜索框为空，显示所有患者
   if (!searchQuery.value.trim()) {
     patients.value = allPatients.value
+    indexedPatients.value = groupPatientsByLetter(allPatients.value)
     return
   }
 
@@ -232,16 +369,18 @@ function handleSearch() {
         return
       }
 
-      const response = await uni.request({
-        url: `http://localhost:3000/patients/search?q=${searchQuery.value}`,
+      const response = await request({
+        url: `/patients/search?q=${encodeURIComponent(searchQuery.value)}`,
         method: 'GET',
-        header: {
+        headers: {
           'Authorization': `Bearer ${token}`
         }
-      }) as any
+      })
 
       if (response.statusCode === 200) {
         patients.value = response.data
+        // 更新字母分组
+        indexedPatients.value = groupPatientsByLetter(response.data)
         console.log('✅ 搜索结果:', response.data.length, '个患者')
       } else if (response.statusCode === 401) {
         handleUnauthorizedError()
@@ -590,15 +729,35 @@ $bg-page: #f8fafc;
 }
 
 .patient-list {
-  padding: 24rpx;
+  padding-bottom: 24rpx;
+
+  .patient-section {
+    .section-header {
+      background: linear-gradient(135deg, $sky-light 0%, rgba(224, 242, 254, 0.5) 100%);
+      padding: 16rpx 32rpx;
+      margin: 0 0 16rpx 0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+
+      .section-letter {
+        font-size: 32rpx;
+        font-weight: 700;
+        color: $medical-blue;
+        letter-spacing: 2rpx;
+      }
+    }
+  }
 
   .patient-item {
     background-color: #fff;
     border-radius: 24rpx;
     padding: 32rpx;
-    margin-bottom: 20rpx;
+    margin: 0 24rpx 20rpx 24rpx;
     box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
     transition: all 0.2s;
+    /* 为右侧索引条预留空间 */
+    margin-right: 80rpx;
 
     &:active {
       transform: scale(0.98);
@@ -631,6 +790,7 @@ $bg-page: #f8fafc;
           color: $medical-blue;
           border-radius: 12rpx;
           font-weight: 500;
+          margin-right: 8rpx;
         }
       }
 
@@ -641,27 +801,6 @@ $bg-page: #f8fafc;
         padding: 8rpx 16rpx;
         background: $sky-light;
         border-radius: 12rpx;
-      }
-    }
-
-    .patient-info {
-      display: flex;
-      margin-bottom: 20rpx;
-
-      .info-item {
-        margin-right: 40rpx;
-
-        .info-label {
-          font-size: 26rpx;
-          color: #64748b;
-          margin-right: 8rpx;
-        }
-
-        .info-value {
-          font-size: 28rpx;
-          color: #1e293b;
-          font-weight: 500;
-        }
       }
     }
 
@@ -748,6 +887,96 @@ $bg-page: #f8fafc;
   .loading-text {
     font-size: 28rpx;
     color: #94a3b8;
+  }
+}
+
+// 患者列表容器（包含列表和字母索引）
+.patient-list-container {
+  position: relative;
+  display: flex;
+  height: calc(100vh - 160rpx); /* 减去搜索栏高度 */
+}
+
+// 患者列表滚动区域
+.patient-list-scroll {
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+}
+
+// 字母索引条
+.alphabet-index {
+  position: fixed;
+  right: 8rpx;
+  top: 160rpx; /* 避开顶部搜索栏，增加更多缓冲 */
+  bottom: 140rpx; /* 避开底部TabBar，增加更多缓冲 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: calc((100vh - 160rpx - 140rpx) * 0.075) 0; /* 上下各留7.5%，总计15%，内容占85% */
+
+  .index-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1; /* 自动平均分配空间 */
+    width: 100%;
+    min-height: 20rpx; /* 最小高度 */
+    max-height: 80rpx; /* 最大高度 */
+    transition: all 0.2s;
+
+    &:active {
+      transform: scale(1.1);
+    }
+
+    .index-letter {
+      font-size: clamp(14rpx, 3vh, 32rpx); /* 动态字体大小：最小14rpx，最大32rpx，随视口高度调整 */
+      color: $medical-blue;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+  }
+}
+
+// 字母指示器（中央大字母显示）
+.letter-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 200rpx;
+  height: 200rpx;
+  background: rgba(14, 165, 233, 0.95);
+  backdrop-filter: blur(20rpx);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 40rpx rgba(14, 165, 233, 0.4);
+  z-index: 9999;
+  animation: indicatorPop 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  .indicator-letter {
+    font-size: 120rpx;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 4rpx;
+  }
+}
+
+@keyframes indicatorPop {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
   }
 }
 </style>
