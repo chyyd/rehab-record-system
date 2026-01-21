@@ -133,7 +133,7 @@
               <tr>
                 <th width="10%">日期</th>
                 <th width="18%">治疗项目</th>
-                <th width="12%">治疗师</th>
+                <th width="12%">治疗操作</th>
                 <th width="18%">治疗时间</th>
                 <th width="10%">治疗时长</th>
                 <th width="12%">患者签名</th>
@@ -206,7 +206,7 @@
           <div class="signature-item">
             <div class="signature-line"></div>
             <div class="signature-name">{{ therapistSignatureText }}</div>
-            <div class="signature-role">康复治疗师</div>
+            <div class="signature-role">治疗操作者</div>
             <div class="signature-date">{{ formatDateOnly(patientInfo.dischargeDate) }}</div>
           </div>
         </div>
