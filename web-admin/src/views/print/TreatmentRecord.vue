@@ -131,26 +131,24 @@
           <table class="treatment-table">
             <thead>
               <tr>
-                <th width="10%">日期</th>
-                <th width="18%">治疗项目</th>
+                <th width="20%">治疗时间</th>
+                <th width="20%">治疗项目</th>
                 <th width="12%">治疗操作</th>
-                <th width="18%">治疗时间</th>
                 <th width="10%">治疗时长</th>
                 <th width="12%">患者签名</th>
-                <th width="20%">备注</th>
+                <th width="26%">备注</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(record, index) in recordsWithRandomTime" :key="record.id">
-                <td>{{ formatDateOnly(record.treatmentDate) }}</td>
-                <td><span class="treatment-type">{{ record.project?.name }}</span></td>
-                <td>{{ record.therapist?.name }}</td>
                 <td class="treatment-time-cell">
                   <span class="treatment-date">{{ formatDateOnly(record.treatmentDate) }}</span>
                   <span class="time-range">
                     <span class="start-time">{{ formatTime(record.startTime) }}</span>-<span class="end-time">{{ record.endTimeWithRandom }}</span>
                   </span>
                 </td>
+                <td><span class="treatment-type">{{ record.project?.name }}</span></td>
+                <td>{{ record.therapist?.name }}</td>
                 <td>
                   <span class="time-badge">{{ record.durationMinutes }}分钟</span>
                 </td>
@@ -780,16 +778,18 @@ function handleClose() {
   font-weight: bold;
   display: block;
   margin-bottom: 1px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .time-range {
   display: block;
-  font-size: 11px;
+  font-size: 8px;
+  white-space: nowrap;
+  /* 确保时间不换行 */
 }
 
 .start-time, .end-time {
-  font-weight: bold;
+  font-weight: normal;
 }
 
 /* 治疗统计 */
